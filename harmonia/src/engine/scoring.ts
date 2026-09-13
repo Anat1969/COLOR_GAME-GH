@@ -1,6 +1,7 @@
 // הרמוניה — זיהוי וניקוד. פונקציות טהורות, נטולות UI.
 import type { CellId, Harmony, Scored, Family } from './types';
 import { parse } from './wheel';
+import { FAMILY3, family3Score } from './family3';
 
 export const BASE: Record<Family, number> = { 2: 4, 3: 9, 4: 16, 5: 25, 6: 36, 7: 49 };
 
@@ -13,12 +14,23 @@ export function purity(cells: CellId[]): Scored['purity'] {
   return { m: 1.35, label: 'אלכסוני', kind: 'diagonal' };
 }
 
-/** ערך הרמוניה בודדת: בסיס × טוהר × קצה */
-export function valueOf(h: Harmony): { pts: number; purity: Scored['purity']; edge: boolean } {
+/**
+ * ערך הרמוניה בודדת.
+ * משפחה 3 (פיילוט): round(9 × distance × axes × symmetry) — ראו engine/family3.ts.
+ * שאר המשפחות: בסיס × טוהר × קצה (המודל הקיים).
+ */
+export function valueOf(h: Harmony): {
+  pts: number; purity: Scored['purity']; edge: boolean; f3?: Scored['f3'];
+} {
   const p = purity(h.cells);
+  const n = +h.variant[0] as Family;
+  const f3 = FAMILY3[h.variant];
+  if (n === 3 && f3) {
+    return { pts: family3Score(h.variant), purity: p, edge: false, f3 };
+  }
   const rs = new Set(h.cells.map((c) => parse(c).r));
   const edge = rs.has(1) && rs.has(5);
-  return { pts: BASE[+h.variant[0] as Family] * p.m * (edge ? 1.1 : 1.0), purity: p, edge };
+  return { pts: BASE[n] * p.m * (edge ? 1.1 : 1.0), purity: p, edge };
 }
 
 /**

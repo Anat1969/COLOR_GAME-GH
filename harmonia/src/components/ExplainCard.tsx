@@ -3,7 +3,19 @@
 // ומשוב "עדיין לא הרמוניה" שמכוון אל התבנית הקרובה — הסבר בלבד, בלי הארת תאים.
 import type { Scored } from '../engine/types';
 import type { NearMiss } from '../engine/teach';
-import { FAMILY, VARIANT, LAW } from '../data/content';
+import { FAMILY, VARIANT, LAW, F3_LABEL } from '../data/content';
+import { F3_DIST, F3_AXES, F3_SYM } from '../engine/family3';
+
+/** שורת המכפילים של הרמוניה — מודל משפחה 3 או טוהר/קצה הקלאסי */
+export function multLine(f: Scored): string {
+  if (f.f3) {
+    const d = `${F3_LABEL.distance[f.f3.distance]} ×${F3_DIST[f.f3.distance].toFixed(2)}`;
+    const a = `${F3_LABEL.axes[f.f3.axes]} ×${F3_AXES[f.f3.axes].toFixed(2)}`;
+    const s = `${F3_LABEL.symmetry[f.f3.symmetry]} ×${F3_SYM[f.f3.symmetry].toFixed(2)}`;
+    return `${d} · ${a} · ${s}`;
+  }
+  return `${f.purity.label} ×${f.purity.m.toFixed(2)}${f.edge ? ' · קצה ×1.10' : ''}`;
+}
 
 export interface Explain {
   preview?: boolean;
@@ -61,9 +73,7 @@ export function ExplainCard({ x }: { x: Explain | null }) {
           </div>
           <div className="law">{LAW[f.variant]}</div>
           <div className="mean">{FAMILY[f.n].mean}</div>
-          <div className="mult">
-            {f.purity.label} ×{f.purity.m.toFixed(2)}{f.edge && ' · קצה ×1.10'}
-          </div>
+          <div className="mult">{multLine(f)}</div>
         </div>
       ))}
       {x.list.length > 1 && (

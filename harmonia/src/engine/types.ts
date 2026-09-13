@@ -22,6 +22,7 @@ export interface Scored extends Harmony {
   pts: number;
   purity: { m: number; label: string; kind: PurityKind };
   edge: boolean;          // פורשת טבעת 1 וגם 5
+  f3?: import('./family3').F3Meta;   // מטא-נתוני משפחה 3 (מודל distance/axes/symmetry)
 }
 
 export interface Level {

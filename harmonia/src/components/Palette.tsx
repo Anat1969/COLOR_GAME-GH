@@ -5,6 +5,7 @@
 import type { Scored, CellId } from '../engine/types';
 import { hexOf, parse, SEG_NAMES_HE } from '../engine/wheel';
 import { FAMILY, VARIANT, LAW } from '../data/content';
+import { multLine } from './ExplainCard';
 
 /** מסדר את תאי ההרמוניה לקריאה: לפי פלח ואז טבעת */
 const ordered = (cells: CellId[]): CellId[] =>
@@ -38,9 +39,7 @@ export function Palette({ list }: { list: Scored[] }) {
 
           <div className="pal-law">{LAW[h.variant]}</div>
           <div className="pal-mean">{FAMILY[h.n].mean}</div>
-          <div className="pal-mult">
-            {h.purity.label} ×{h.purity.m.toFixed(2)}{h.edge && ' · קצה ×1.10'}
-          </div>
+          <div className="pal-mult">{multLine(h)}</div>
         </div>
       ))}
     </div>
