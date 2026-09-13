@@ -39,12 +39,65 @@ header .spacer{flex:1}
 .score .l{font-size:12px; color:var(--dim)}
 .score .item.lead .v{text-shadow:0 0 18px rgba(255,255,255,.45)}
 
-main{flex:1; display:grid; grid-template-columns:270px 1fr 270px; min-height:0}
+main{flex:1; display:grid; grid-template-columns:280px 1fr 300px; min-height:0}
 aside{padding:var(--s4); overflow-y:auto; border-inline-start:1px solid var(--line)}
 aside:first-child{border-inline-start:none; border-inline-end:1px solid var(--line)}
 aside h3{font-size:15px; color:var(--dim); margin-bottom:var(--s3); font-weight:400}
-#stage{display:flex; align-items:center; justify-content:center; min-height:0; padding:var(--s3)}
-svg#wheel{width:min(100%,660px); height:auto; max-height:100%; display:block}
+#center{display:flex; flex-direction:column; min-height:0; min-width:0}
+#stage{flex:1; display:flex; align-items:center; justify-content:center; min-height:0; padding:var(--s3)}
+svg#wheel{width:min(100%,640px); height:auto; max-height:100%; display:block}
+
+/* ---------- באנר התור + שעוני חשיבה ---------- */
+.turnbar{
+  flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+  gap:var(--s3); padding:var(--s2) var(--s5);
+  border-bottom:1px solid var(--line); background:rgba(255,255,255,.02);
+}
+.turnbar .tside{display:flex; flex-direction:column; align-items:center; gap:2px;
+  padding:4px 12px; border-radius:4px; min-width:74px; transition:background .2s}
+.turnbar .tside.on{background:rgba(255,255,255,.10)}
+.turnbar .twho{font-size:12px; color:var(--dim)}
+.turnbar .tside.on .twho{color:var(--text)}
+.turnbar .tclk{font-family:'Frank Ruhl Libre',serif; font-size:18px; color:var(--faint);
+  font-variant-numeric:tabular-nums}
+.turnbar .tside.on .tclk{color:var(--text)}
+.turnbar .tmsg{font-family:'Frank Ruhl Libre',serif; font-size:17px; text-align:center;
+  color:var(--text)}
+
+/* ---------- מקרא המשפחות ---------- */
+.legend{list-style:none; display:flex; flex-direction:column; gap:var(--s2)}
+.leg-item{display:flex; gap:var(--s3); align-items:flex-start}
+.glyph{flex:0 0 auto; width:34px; height:34px; margin-top:2px}
+.glyph line,.glyph path{fill:none; stroke:var(--text); stroke-width:1.4;
+  stroke-linejoin:round; opacity:.85}
+.glyph .node{fill:var(--text); stroke:none; opacity:.9}
+.leg-text{display:flex; flex-direction:column; gap:2px}
+.leg-name{font-size:14px}
+.leg-name b{font-family:'Frank Ruhl Libre',serif}
+.leg-mean{font-size:12px; color:var(--faint); line-height:1.35}
+
+/* ---------- משוב "עדיין לא הרמוניה" ---------- */
+.feedback{border:1px solid var(--line-2); border-radius:3px; padding:var(--s3);
+  background:rgba(255,255,255,.03)}
+.fb-title{font-family:'Frank Ruhl Libre',serif; font-size:16px; margin-bottom:var(--s2)}
+.fb-body{font-size:13px; color:var(--dim); line-height:1.5}
+
+/* ---------- לוח הפרס (הצבע היחיד בממשק) ---------- */
+.palettes{display:flex; flex-direction:column; gap:var(--s3)}
+.palette{border:1px solid var(--line); border-radius:4px; padding:var(--s3);
+  background:var(--surface)}
+.pal-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:var(--s2)}
+.pal-name{font-family:'Frank Ruhl Libre',serif; font-size:16px}
+.pal-pts{font-family:'Frank Ruhl Libre',serif; font-size:18px}
+.swatches{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:var(--s2)}
+.swatch{flex:1 1 auto; min-width:40px; height:56px; border-radius:3px; position:relative;
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:inset 1px 1px 2px rgba(255,255,255,.35), inset -1px -2px 3px rgba(0,0,0,.35)}
+.sw-label{position:absolute; inset-inline:0; bottom:3px; text-align:center; font-size:9px;
+  line-height:1.05; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.7); pointer-events:none}
+.pal-law{font-size:13px; color:var(--dim); margin-bottom:var(--s1)}
+.pal-mean{font-size:12px; color:var(--text); opacity:.8; line-height:1.4}
+.pal-mult{font-size:12px; color:var(--faint); margin-top:var(--s2)}
 
 /* ---------- wheel ---------- */
 .cell.playable{cursor:pointer}
@@ -177,8 +230,10 @@ button:focus-visible{outline:2px solid #fff; outline-offset:2px}
   main{display:flex; flex-direction:column; overflow-y:auto}
   aside{border-inline:none; border-top:1px solid var(--line); overflow:visible}
   aside:first-child{border-inline-end:none; order:2}
+  #center{flex:0 0 auto}
   #stage{flex:0 0 auto; padding:var(--s2)}
   svg#wheel{max-height:none}
+  .turnbar{border-top:1px solid var(--line)}
 }
 @media (max-width:620px){
   header{padding:var(--s2) var(--s3); gap:var(--s3)}

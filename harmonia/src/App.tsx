@@ -4,6 +4,7 @@ import type { CellId, GameState, Family, Scored } from './engine/types';
 import {
   newGame, applyPlacement, applyEndPenalty, isGameOver, detect, tally,
 } from './engine/reducer';
+import { analyzeSelection } from './engine/teach';
 import { bestMove } from './engine/ai';
 import { FAMILY, LEVELS } from './data/content';
 import { Wheel } from './components/Wheel';
@@ -12,6 +13,9 @@ import { DeclareBar } from './components/DeclareBar';
 import { ExplainCard, type Explain } from './components/ExplainCard';
 import { Ledger } from './components/Ledger';
 import { Diagnostic } from './components/Diagnostic';
+import { TurnBar } from './components/TurnBar';
+import { FamiliesLegend } from './components/FamiliesLegend';
+import { Palette } from './components/Palette';
 
 const STORE = 'harmonia.progress';
 const readUnlocked = (): number => {
@@ -30,14 +34,27 @@ export default function App() {
   const [explain, setExplain] = useState<Explain | null>(null);
   const [hover, setHover] = useState<CellId | null>(null);
   const [unlocked, setUnlocked] = useState(readUnlocked);
+  const [clock, setClock] = useState({ p: 0, c: 0 });
   const G = gRef.current;
   const redraw = useCallback(() => force(), []);
+
+  // שעוני החשיבה — הצד הפעיל מתקתק בכל שנייה, בלי עונש. קורא את המצב
+  // מה-ref כדי להישאר עדכני בלי לחדש את ה-interval בכל ציור.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const g = gRef.current;
+      if (g.over) return;
+      setClock((cl) => (g.busy ? { ...cl, c: cl.c + 1 } : { ...cl, p: cl.p + 1 }));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const start = useCallback((levelIdx: number) => {
     gRef.current = newGame(levelIdx);
     setFigure(null);
     setExplain(null);
     setHover(null);
+    setClock({ p: 0, c: 0 });
     redraw();
   }, [redraw]);
 
@@ -47,7 +64,7 @@ export default function App() {
     const list = detect(G.board, sel, G.ledger, G.active);
     setExplain(list.length
       ? { preview: true, list, ...tally(list) }
-      : { none: true, list: [] });
+      : null);   // אין תצוגה מקדימה שלילית — המשוב ניתן רק ב"סיום הבחירה"
   }, [G]);
 
   const toggle = useCallback((id: CellId) => {
@@ -90,7 +107,7 @@ export default function App() {
       applyPlacement(G, mv.sel, mv.list, 'c');
       G.busy = false;
       setFigure(mv.list);
-      setExplain({ head: 'המהלך של המחשב', list: mv.list, ...tally(mv.list) });
+      setExplain({ head: 'המהלך של המחשב', list: mv.list, committed: true, ...tally(mv.list) });
       redraw();
       if (!G.cpu.length && !G.pot.length) { G.score.c += 30; finish(); }
     }, 900);
@@ -101,19 +118,21 @@ export default function App() {
     applyPlacement(G, sel, list, 'p', mult);
     G.sel.clear();
     setFigure(list);
-    setExplain({ list, ...t, note });
+    setExplain({ list, committed: true, ...t, note });
     setHover(null);
     redraw();
     if (!G.hand.length && !G.pot.length) { G.score.p += 30; finish(); return; }
     setTimeout(cpuTurn, 1600);
   }, [G, redraw, cpuTurn, finish]);
 
-  const place = useCallback(() => {
+  // "סיום הבחירה ובדיקה" — פעיל תמיד כשיש אבן נבחרת. נותן ניקוד או משוב מכוון.
+  const submit = useCallback(() => {
     const sel = [...G.sel];
-    const list = detect(G.board, sel, G.ledger, G.active);
-    if (!list.length) return;
-    if (G.level.declare === 'auto') { commit(sel, list, 1.0); return; }
-    G.pending = { sel, list };
+    if (!sel.length) return;
+    const a = analyzeSelection(G.board, sel, G.ledger, G.active);
+    if (!a.ok) { setExplain({ none: true, near: a.near, list: [] }); return; }
+    if (G.level.declare === 'auto') { commit(sel, a.list, 1.0); return; }
+    G.pending = { sel, list: a.list };
     redraw();
   }, [G, redraw, commit]);
 
@@ -159,7 +178,7 @@ export default function App() {
 
   const hint = useCallback(() => {
     const best = bestMove(G, G.hand, 'תכנן');
-    if (!best) { setExplain({ none: true, list: [] }); return; }
+    if (!best) { setExplain({ none: true, near: null, list: [] }); return; }
     G.score.p -= 5;
     G.sel = new Set(best.sel);
     G.log.push('<b>את</b> — מצפן · 5−');
@@ -177,18 +196,17 @@ export default function App() {
   }, [G, redraw]);
 
   const sel = [...G.sel];
-  const canPlace = sel.length >= 2 && detect(G.board, sel, G.ledger, G.active).length > 0;
   const busy = G.over || G.busy || !!G.pending;
+  const turn: 'p' | 'c' = G.busy ? 'c' : 'p';
+  const showPalette = !!explain && !explain.none && !explain.preview && (explain.list?.length ?? 0) > 0;
+  const showPreviewPalette = !!explain && explain.preview && (explain.list?.length ?? 0) > 0;
 
-  // שורת ההנחיה: אומרת בדיוק מה חסר כדי להתקדם, במקום להשאיר כפתור מת.
   const guidance =
     G.over ? 'המשחק הסתיים.'
-    : G.busy ? 'המחשב מחשב את מהלכו.'
-    : G.pending ? 'נקבי במשפחת ההרמוניה שיצרת.'
-    : sel.length === 0 ? 'בחרי אבנים מהמגש — כל תור חייב ליצור לפחות הרמוניה אחת.'
-    : sel.length === 1 ? 'אבן אחת אינה יחס. בחרי עוד אחת לפחות.'
-    : canPlace ? 'הצירוף יוצר הרמוניה. אפשר להניח.'
-    : 'הצירוף הזה אינו יוצר הרמוניה — נסי אחר, או החליפי אבנים.';
+    : G.busy ? 'המחשב חושב את מהלכו…'
+    : G.pending ? 'נקבי במשפחת ההרמוניה שיצרת כדי לקבל ניקוד מלא.'
+    : sel.length === 0 ? 'בחרי אבנים מהמגש, ואז לחצי "סיום הבחירה".'
+    : 'לחצי "סיום הבחירה" כדי לבדוק ולקבל ניקוד ומשוב.';
 
   return (
     <>
@@ -196,11 +214,7 @@ export default function App() {
         <h1>הרמוניה</h1>
         <label className="lvl">
           רמה{' '}
-          <select
-            value={G.levelIdx}
-            onChange={(e) => start(+e.target.value)}
-            aria-label="בחירת רמה"
-          >
+          <select value={G.levelIdx} onChange={(e) => start(+e.target.value)} aria-label="בחירת רמה">
             {LEVELS.map((L, i) => (
               <option key={L.n} value={i} disabled={i > unlocked}>
                 {L.n} · {L.name}{i > unlocked ? ' (נעולה)' : ''}
@@ -224,20 +238,33 @@ export default function App() {
 
       <main>
         <aside>
-          <h3>ספר ההרמוניות</h3>
+          <h3>מקרא המשפחות</h3>
+          <FamiliesLegend fams={G.level.fams} />
+          <h3 style={{ marginTop: 24 }}>ספר ההרמוניות</h3>
           <Ledger G={G} />
         </aside>
 
-        <div id="stage">
-          <Wheel G={G} figure={figure} hover={hover} onToggle={toggle} onHover={setHover} />
+        <div id="center">
+          <TurnBar turn={turn} clock={clock} over={G.over} />
+          <div id="stage">
+            <Wheel G={G} figure={figure} hover={hover} onToggle={toggle} onHover={setHover} />
+          </div>
         </div>
 
         <aside>
-          <h3>המהלך האחרון</h3>
+          <h3>{explain?.none ? 'משוב' : explain?.committed ? 'המהלך האחרון' : 'הדרכה'}</h3>
           <ExplainCard x={explain} />
-          <h3 style={{ marginTop: 24 }}>יומן</h3>
+          {(showPalette || showPreviewPalette) && explain?.list && (
+            <>
+              <h3 style={{ marginTop: 20 }}>
+                {showPreviewPalette ? 'לוח הצבעים שאת בונה' : 'לוח הצבעים שיצרת'}
+              </h3>
+              <Palette list={explain.list} />
+            </>
+          )}
+          <h3 style={{ marginTop: 20 }}>יומן</h3>
           {G.log.length
-            ? G.log.slice(-9).reverse().map((l, i) => (
+            ? G.log.slice(-8).reverse().map((l, i) => (
                 <div className="log" key={G.log.length - i} dangerouslySetInnerHTML={{ __html: l }} />
               ))
             : <p className="empty">המשחק מתחיל.</p>}
@@ -250,7 +277,9 @@ export default function App() {
           <DeclareBar G={G} onDeclare={declare} />
         ) : (
           <div className="bar">
-            <button className="primary" disabled={busy || !canPlace} onClick={place}>הנחה</button>
+            <button className="primary" disabled={busy || sel.length < 1} onClick={submit}>
+              סיום הבחירה ובדיקה
+            </button>
             <button
               disabled={busy || sel.length === 0 || sel.length > 3 || !G.pot.length}
               onClick={swap}
@@ -265,7 +294,7 @@ export default function App() {
 
       {G.over && (
         <div id="over">
-          <Diagnostic G={G} unlocked={unlocked} onPick={start} />
+          <Diagnostic G={G} unlocked={unlocked} clock={clock} onPick={start} />
         </div>
       )}
     </>

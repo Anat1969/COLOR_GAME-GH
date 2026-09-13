@@ -1,18 +1,57 @@
-// הרמוניה — לוח ההסבר. מציג את החוק, המשמעות והמכפילים של המהלך.
+// הרמוניה — לוח ההסבר והמשוב.
+// שלושה מצבים: תצוגה מקדימה של בחירה, תוצאת מהלך מנוקד (עם תובנה),
+// ומשוב "עדיין לא הרמוניה" שמכוון אל התבנית הקרובה — הסבר בלבד, בלי הארת תאים.
 import type { Scored } from '../engine/types';
+import type { NearMiss } from '../engine/teach';
 import { FAMILY, VARIANT, LAW } from '../data/content';
 
 export interface Explain {
-  preview?: boolean; none?: boolean; head?: string; note?: string;
-  list: Scored[]; asym?: boolean; total?: number;
+  preview?: boolean;
+  none?: boolean;
+  head?: string;
+  note?: string;
+  list: Scored[];
+  asym?: boolean;
+  total?: number;
+  near?: NearMiss | null;   // משוב על בחירה שאינה תקפה
+  committed?: boolean;      // מהלך שהונח בפועל — מציג תובנה
+}
+
+/** מרכיב את הסבר ה-near-miss מהמבנה הטהור של teach.ts */
+function nearText(near: NearMiss): string {
+  const fam = FAMILY[near.n].name;
+  const vname = VARIANT[near.variant];
+  const law = LAW[near.variant];
+  if (near.extra > 0 && near.have >= 2) {
+    return `הבחירה מערבבת יותר מיחס אחד. הקרובה ביותר: ${fam} · ${vname} — ${law}. ` +
+      `יש בבחירה ${near.extra} אבנים שאינן חלק ממנה.`;
+  }
+  if (near.missing >= 1) {
+    const n = near.missing;
+    const gap = n === 1 ? 'חסרה עוד אבן אחת' : `חסרות עוד ${n} אבנים`;
+    return `קרובה ל${fam} · ${vname} — ${law}. ${gap}.`;
+  }
+  return `קרובה ל${fam} · ${vname} — ${law}.`;
 }
 
 export function ExplainCard({ x }: { x: Explain | null }) {
-  if (!x) return <p className="empty">בחרי אבנים מהמגש.</p>;
-  if (x.none) return <p className="empty">הצירוף הזה אינו יוצר הרמוניה. נסי צירוף אחר.</p>;
+  if (!x) return <p className="empty">בחרי אבנים מהמגש כדי להתחיל.</p>;
+
+  // משוב: לא הרמוניה — אבל מכוונים
+  if (x.none) {
+    return (
+      <div className="feedback">
+        <p className="fb-title">הצירוף עדיין אינו הרמוניה</p>
+        {x.near
+          ? <p className="fb-body">{nearText(x.near)}</p>
+          : <p className="fb-body">נסי צירוף אחר — שני גוונים ביחס גיאומטרי אחד נקי.</p>}
+      </div>
+    );
+  }
+
   return (
     <>
-      {x.preview && <p className="empty" style={{ marginBottom: 12 }}>תצוגה מקדימה</p>}
+      {x.preview && <p className="empty" style={{ marginBottom: 12 }}>תצוגה מקדימה — לחצי "סיום הבחירה" לניקוד</p>}
       {x.head && <p className="empty" style={{ marginBottom: 12 }}>{x.head}</p>}
       {x.list.map((f, i) => (
         <div className="card" key={i}>

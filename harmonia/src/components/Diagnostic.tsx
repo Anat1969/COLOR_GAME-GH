@@ -4,9 +4,16 @@
 import type { GameState } from '../engine/types';
 import { LEVELS, FAMILY } from '../data/content';
 
-interface Props { G: GameState; unlocked: number; onPick: (levelIdx: number) => void; }
+interface Props {
+  G: GameState;
+  unlocked: number;
+  clock: { p: number; c: number };
+  onPick: (levelIdx: number) => void;
+}
 
-export function Diagnostic({ G, unlocked, onPick }: Props) {
+const fmt = (sec: number): string => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+
+export function Diagnostic({ G, unlocked, clock, onPick }: Props) {
   const s = G.stat;
   const pct = (a: number, b: number) => (b ? Math.round((100 * a) / b) : 0);
   const rows: [string, number, string][] = [
@@ -34,7 +41,7 @@ export function Diagnostic({ G, unlocked, onPick }: Props) {
       <h2>{won ? 'ניצחת' : 'המחשב ניצח'}</h2>
       <p>
         {Math.round(G.score.p)} מול {Math.round(G.score.c)} · {s.turns} תורות ·{' '}
-        {G.found.length} הרמוניות
+        {G.found.length} הרמוניות · זמן חשיבה {fmt(clock.p)} מול {fmt(clock.c)}
       </p>
 
       <div className="bars">
