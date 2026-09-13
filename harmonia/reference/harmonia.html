@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>הרמוניה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600&family=Frank+Ruhl+Libre:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --canvas:#2B2B2E; --surface:#35353A; --surface-2:#3E3E43;
+  --line:rgba(255,255,255,.10); --line-2:rgba(255,255,255,.18);
+  --text:#EDEDEA; --dim:#A3A3A0; --faint:#76767A;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--canvas); color:var(--text);
+  font-family:'Assistant',system-ui,sans-serif; font-size:16px; line-height:1.5;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+h1,h2,h3,.num{font-family:'Frank Ruhl Libre',Georgia,serif; font-weight:500; line-height:1.2}
+
+/* ---------- shell ---------- */
+header{
+  display:flex; align-items:baseline; gap:var(--s5);
+  padding:var(--s3) var(--s5); border-bottom:1px solid var(--line); flex:0 0 auto;
+}
+header h1{font-size:24px; letter-spacing:.02em}
+header .lvl{color:var(--dim); font-size:14px}
+header .spacer{flex:1}
+.score{display:flex; gap:var(--s5); align-items:baseline}
+.score .item{text-align:center}
+.score .v{font-family:'Frank Ruhl Libre',serif; font-size:28px; display:block}
+.score .l{font-size:12px; color:var(--dim)}
+
+main{flex:1; display:grid; grid-template-columns:260px 1fr 260px; min-height:0}
+aside{padding:var(--s4); overflow-y:auto; border-inline-start:1px solid var(--line)}
+aside:first-child{border-inline-start:none; border-inline-end:1px solid var(--line)}
+aside h3{font-size:15px; color:var(--dim); margin-bottom:var(--s3); font-weight:400}
+#stage{display:flex; align-items:center; justify-content:center; min-height:0; padding:var(--s3)}
+svg#wheel{width:min(100%,640px); height:auto; max-height:100%}
+
+/* ---------- wheel ---------- */
+.cell{cursor:default; transition:opacity .18s}
+.cell.playable{cursor:pointer}
+.cell.playable:hover .ghost{opacity:.30}
+.stone{filter:drop-shadow(0 2px 5px rgba(0,0,0,.5))}
+.sel{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.62}50%{opacity:1}}
+.figure{fill:none; stroke:#fff; stroke-width:1.6; stroke-linejoin:round;
+  opacity:0; animation:trace 1.9s ease-out forwards}
+@keyframes trace{0%{opacity:0}15%{opacity:.95}70%{opacity:.9}100%{opacity:0}}
+.lbl{font-family:'Assistant',sans-serif; font-size:11px; fill:var(--faint);
+  text-anchor:middle; letter-spacing:.06em; pointer-events:none}
+
+/* ---------- tray ---------- */
+footer{flex:0 0 auto; border-top:1px solid var(--line); padding:var(--s3) var(--s5)}
+#tray{display:flex; justify-content:center; gap:var(--s3); margin-bottom:var(--s3); min-height:66px}
+.gem{width:56px; height:56px; border-radius:50%; border:1px solid rgba(255,255,255,.22);
+  cursor:pointer; position:relative; transition:transform .16s, box-shadow .16s;
+  box-shadow:0 3px 8px rgba(0,0,0,.45), inset 0 -3px 8px rgba(0,0,0,.25);}
+.gem::after{content:''; position:absolute; inset:0; border-radius:50%;
+  background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.55), rgba(255,255,255,.10) 42%, transparent 62%)}
+.gem:hover{transform:translateY(-3px)}
+.gem.on{transform:translateY(-10px); box-shadow:0 0 0 2px #fff, 0 6px 14px rgba(0,0,0,.55)}
+.gem[disabled]{opacity:.35; cursor:default; transform:none}
+
+.bar{display:flex; justify-content:center; align-items:center; gap:var(--s2); flex-wrap:wrap}
+button{
+  font-family:'Assistant',sans-serif; font-size:15px; color:var(--text);
+  background:var(--surface-2); border:1px solid var(--line-2); border-radius:3px;
+  padding:9px 20px; cursor:pointer; transition:background .15s,border-color .15s;
+}
+button:hover:not(:disabled){background:#4A4A50; border-color:rgba(255,255,255,.35)}
+button:disabled{opacity:.32; cursor:default}
+button.primary{background:#EDEDEA; color:#26262A; border-color:#EDEDEA; font-weight:600}
+button.primary:hover:not(:disabled){background:#fff}
+button:focus-visible{outline:2px solid #fff; outline-offset:2px}
+
+/* ---------- declare ---------- */
+#declare{display:none; gap:var(--s2); justify-content:center; align-items:center; flex-wrap:wrap}
+#declare.show{display:flex}
+#declare .q{color:var(--dim); font-size:14px; margin-inline-end:var(--s2)}
+.dbtn{min-width:96px; padding:8px 12px; text-align:center}
+.dbtn .n{font-family:'Frank Ruhl Libre',serif; font-size:20px; display:block; line-height:1}
+.dbtn .t{font-size:12px; color:var(--dim)}
+
+/* ---------- panels ---------- */
+.card{background:var(--surface); border:1px solid var(--line); border-radius:3px;
+  padding:var(--s3); margin-bottom:var(--s3)}
+.card .h{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:var(--s1)}
+.card .name{font-family:'Frank Ruhl Libre',serif; font-size:18px}
+.card .pts{font-family:'Frank Ruhl Libre',serif; font-size:20px}
+.card .law{font-size:13px; color:var(--dim); margin-bottom:var(--s2)}
+.card .mean{font-size:13px; color:var(--text); opacity:.85}
+.card .mult{font-size:12px; color:var(--faint); margin-top:var(--s2)}
+.row{display:flex; justify-content:space-between; font-size:13px; padding:5px 0;
+  border-bottom:1px solid rgba(255,255,255,.05)}
+.row span:last-child{font-family:'Frank Ruhl Libre',serif; color:var(--dim)}
+.log{font-size:13px; color:var(--dim); padding:5px 0; border-bottom:1px solid rgba(255,255,255,.05)}
+.log b{color:var(--text); font-weight:600}
+.empty{color:var(--faint); font-size:13px; font-style:normal}
+
+/* ---------- overlay ---------- */
+#over{position:fixed; inset:0; background:rgba(28,28,31,.94); display:none;
+  align-items:center; justify-content:center; z-index:20; padding:var(--s5)}
+#over.show{display:flex}
+.panel{background:var(--surface); border:1px solid var(--line-2); border-radius:4px;
+  padding:var(--s6); max-width:600px; width:100%; max-height:90vh; overflow-y:auto}
+.panel h2{font-size:30px; margin-bottom:var(--s2)}
+.panel p{color:var(--dim); font-size:14px; margin-bottom:var(--s5)}
+.bars{margin-bottom:var(--s5)}
+.brow{display:grid; grid-template-columns:1fr 150px 44px; align-items:center; gap:var(--s3);
+  padding:7px 0; font-size:14px}
+.track{height:5px; background:rgba(255,255,255,.10); border-radius:3px; overflow:hidden}
+.fill{height:100%; background:#EDEDEA}
+.brow .p{font-family:'Frank Ruhl Libre',serif; text-align:end; color:var(--dim)}
+.lvls{display:flex; gap:var(--s2); flex-wrap:wrap; margin-bottom:var(--s5)}
+
+@media (max-width:1100px){
+  main{grid-template-columns:1fr}
+  aside{display:none}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>הרמוניה</h1>
+  <span class="lvl" id="lvlTag">רמה 1 · ציר</span>
+  <span class="spacer"></span>
+  <div class="score">
+    <div class="item"><span class="v num" id="sP">0</span><span class="l">את</span></div>
+    <div class="item"><span class="v num" id="sC">0</span><span class="l">המחשב</span></div>
+    <div class="item"><span class="v num" id="potN">46</span><span class="l">בקופה</span></div>
+  </div>
+</header>
+
+<main>
+  <aside>
+    <h3>ספר ההרמוניות</h3>
+    <div id="ledger"><p class="empty">עוד לא נמצאה הרמוניה.</p></div>
+  </aside>
+
+  <div id="stage"><svg id="wheel" viewBox="0 0 720 760"></svg></div>
+
+  <aside>
+    <h3>המהלך האחרון</h3>
+    <div id="explain"><p class="empty">בחרי אבנים מהמגש.</p></div>
+    <h3 style="margin-top:var(--s5)">יומן</h3>
+    <div id="log"></div>
+  </aside>
+</main>
+
+<footer>
+  <div id="tray"></div>
+  <div class="bar" id="actions">
+    <button class="primary" id="bPlace" disabled>הנחה</button>
+    <button id="bSwap" disabled>החלפה</button>
+    <button id="bPass">ויתור</button>
+    <button id="bHint">מצפן · 5−</button>
+    <button id="bNew">משחק חדש</button>
+  </div>
+  <div class="bar" id="declare">
+    <span class="q">איזו הרמוניה יצרת?</span>
+  </div>
+</footer>
+
+<div id="over"><div class="panel" id="panel"></div></div>
+
+<script>
+/* =====================================================================
+   הרמוניה — מנוע המשחק
+   ===================================================================== */
+
+const SEGS=12, RINGS=5;
+const SEG_NAMES=['BLUE','INDIGO','PURPLE','VIOLET','RED','BRICK','ORANGE','GOLD','YELLOW','LIME','GREEN','TEAL'];
+const HUE=[218,248,278,300,348,8,25,42,55,78,132,176];
+const SAT=[null,30,52,68,72,66], LIT=[null,84,68,54,42,30];
+const RADII=[34,76,120,168,222,290];
+const CX=360, CY=346;
+
+const cid=(s,r)=>`${((s%SEGS)+SEGS)%SEGS}-${r}`;
+const parse=id=>{const[a,b]=id.split('-');return{s:+a,r:+b}};
+const hexOf=id=>{const{s,r}=parse(id); return `hsl(${HUE[s]} ${SAT[r]}% ${LIT[r]}%)`};
+
+/* ---------- קטלוג ההרמוניות (597 מופעים) ---------- */
+function buildCatalog(){
+  const seen=new Map();
+  const add=(v,cs)=>{const u=[...new Set(cs)]; if(u.length!==cs.length)return;
+    const k=[...u].sort().join('|'); if(!seen.has(k))seen.set(k,{variant:v,cells:u,key:k});};
+  const C=cid;
+  for(let r=1;r<=5;r++){
+    for(let s=0;s<6;s++)  add('2a',[C(s,r),C(s+6,r)]);
+    for(let s=0;s<12;s++) add('2c',[C(s,r),C(s+5,r)]);
+  }
+  for(let s=0;s<12;s++)   add('2b',[C(s,1),C(s,5)]);
+  for(let s=0;s<12;s++) for(let r=1;r<=3;r++) add('3a',[C(s,r),C(s,r+1),C(s,r+2)]);
+  for(let r=1;r<=5;r++){
+    for(let s=0;s<4;s++)  add('3b',[C(s,r),C(s+4,r),C(s+8,r)]);
+    for(let s=0;s<12;s++) add('3c',[C(s,r),C(s+1,r),C(s+2,r)]);
+  }
+  for(let r=1;r<=5;r++){
+    for(let s=0;s<3;s++)  add('4a',[0,1,2,3].map(k=>C(s+3*k,r)));
+    for(let s=0;s<6;s++)  add('4b',[C(s,r),C(s+1,r),C(s+6,r),C(s+7,r)]);
+  }
+  for(let s=0;s<12;s++) for(let r=1;r<=4;r++) add('4c',[C(s,r),C(s,r+1),C(s+1,r),C(s+1,r+1)]);
+  for(let s=0;s<12;s++){
+    add('5a',[1,2,3,4,5].map(r=>C(s,r)));
+    add('5c',[0,1,2,3,4].map(k=>C(s+k,1+k)));
+    add('5c',[0,1,2,3,4].map(k=>C(s-k,1+k)));
+  }
+  for(let r=1;r<=5;r++) for(let s=0;s<12;s++) add('5b',[0,1,2,3,4].map(k=>C(s+k,r)));
+  for(let r=1;r<=5;r++) for(let s=0;s<2;s++) add('6a',[0,1,2,3,4,5].map(k=>C(s+2*k,r)));
+  for(let s=0;s<12;s++) for(let a=1;a<=4;a++) add('6b',[0,1,2,3,4,5].map(k=>C(s+k,k%2===0?a:a+1)));
+  for(let s=0;s<12;s++) for(let r=1;r<=4;r++) add('6c',[0,1,2].flatMap(k=>[C(s+k,r),C(s+k,r+1)]));
+  for(let r=1;r<=5;r++) for(let s=0;s<12;s++) add('7a',[0,1,2,3,4,5,6].map(k=>C(s+k,r)));
+  const sp=[1,2,3,4,5,4,3];
+  for(let s=0;s<12;s++){ add('7c',sp.map((r,k)=>C(s+2*k,r))); add('7c',sp.map((r,k)=>C(s-2*k,r))); }
+  return [...seen.values()];
+}
+const CATALOG=buildCatalog();
+
+const VARIANT={
+ '2a':'משלים','2b':'קוטב ערכי','2c':'משלים מפוצל',
+ '3a':'דירוג ערכי','3b':'טריאדה','3c':'דירוג גוני',
+ '4a':'מרובע','4b':'מלבן','4c':'שדה',
+ '5a':'עמוד מלא','5b':'סחיפה','5c':'מדרגה',
+ '6a':'משושה','6b':'מקצב מתחלף','6c':'קצב כפול',
+ '7a':'קשת מחזור','7c':'ספירלה'};
+const LAW={
+ '2a':'אותה טבעת, שישה פלחים מרחק','2b':'אותו פלח, הטבעת הפנימית והחיצונית','2c':'אותה טבעת, חמישה פלחים מרחק',
+ '3a':'אותו פלח, שלוש טבעות רצופות','3b':'אותה טבעת, ארבעה פלחים בין כל זוג','3c':'אותה טבעת, שלושה פלחים רצופים',
+ '4a':'אותה טבעת, שלושה פלחים בין כל זוג','4b':'אותה טבעת, שני זוגות סמוכים זה מול זה','4c':'שני פלחים על שתי טבעות',
+ '5a':'אותו פלח, כל חמש הטבעות','5b':'אותה טבעת, חמישה פלחים רצופים','5c':'אלכסון — פלח וטבעת עולים יחד',
+ '6a':'אותה טבעת, שני פלחים בין כל זוג','6b':'שישה פלחים, טבעות לסירוגין','6c':'שלושה פלחים על שתי טבעות',
+ '7a':'אותה טבעת, שבעה פלחים רצופים','7c':'ספירלה — קפיצות של שניים, הטבעת עולה ויורדת'};
+const FAMILY={
+ 2:{name:'ניגוד', mean:'שניים אינם קבוצה — הם ציר. כל אחד מגדיר את השני בשלילה.'},
+ 3:{name:'דירוג', mean:'השלישי הוא הראשון שיכול להיות באמצע. עם שלושה נולד כיוון.'},
+ 4:{name:'סדר',   mean:'ארבעה נסגרים. זו הצורה הראשונה שיש לה מסגרת — ולכן גם סכנת קיפאון.'},
+ 5:{name:'תנועה', mean:'חמישה ארוכים מכדי להיקרא במבט אחד. העין נעה לאורכם.'},
+ 6:{name:'מקצב',  mean:'שישה הם הכמות שבה חזרת מרווח נעשית מורגשת. העין חוזה מה יבוא.'},
+ 7:{name:'מחזור', mean:'שבעה חוצים את מחצית הגלגל. העין שבה — לנקודה שכבר השתנתה.'}};
+
+/* ---------- ניקוד ---------- */
+const BASE={2:4,3:9,4:16,5:25,6:36,7:49};
+function purity(cells){
+  const rs=new Set(cells.map(c=>parse(c).r)), ss=new Set(cells.map(c=>parse(c).s));
+  if(rs.size===1) return {m:1.00,label:'טהור־גוני'};
+  if(ss.size===1) return {m:1.10,label:'טהור־ערכי'};
+  return {m:1.35,label:'אלכסוני'};
+}
+function valueOf(h){
+  const p=purity(h.cells);
+  const rs=new Set(h.cells.map(c=>parse(c).r));
+  const edge=(rs.has(1)&&rs.has(5))?1.10:1.0;
+  return {pts:BASE[+h.variant[0]]*p.m*edge, purity:p, edge:edge>1};
+}
+/* מוצא הרמוניות שהושלמו, עם ≥2 אבנים חדשות. מחזיר עד שלוש הגבוהות. */
+function detect(board, placed, ledger, active){
+  const set=new Set(placed);
+  const out=[];
+  for(const h of active){
+    if(ledger.has(h.key)) continue;
+    let nu=0, ok=true;
+    for(const c of h.cells){
+      if(set.has(c)) nu++;
+      else if(!board.has(c)){ ok=false; break; }
+    }
+    if(!ok || nu<2) continue;
+    const v=valueOf(h);
+    out.push({...h, ...v, n:+h.variant[0]});
+  }
+  out.sort((a,b)=>b.pts-a.pts);
+  return out.slice(0,3);
+}
+function tally(list){
+  if(!list.length) return {total:0, asym:false};
+  const par=new Set(list.map(h=>h.n%2));
+  const asym=par.size>1;
+  const total=list.reduce((a,h)=>a+h.pts,0)*(asym?1.25:1.0);
+  return {total, asym};
+}
+
+/* ---------- רמות ---------- */
+const LEVELS=[
+ {n:1,name:'ציר',   rings:[2,3,4],     fams:[2,3],         declare:'must', ai:'למד', hand:7},
+ {n:2,name:'מבנה',  rings:[2,3,4],     fams:[2,3,4],       declare:'must', ai:'למד', hand:7},
+ {n:3,name:'תנועה', rings:[1,2,3,4,5], fams:[2,3,4,5],     declare:'must', ai:'תכנן', hand:9},
+ {n:4,name:'מקצב',  rings:[1,2,3,4,5], fams:[2,3,4,5,6],   declare:'opt',  ai:'תכנן', hand:9},
+ {n:5,name:'מחזור', rings:[1,2,3,4,5], fams:[2,3,4,5,6,7], declare:'auto', ai:'הלחן', hand:9}];
+
+/* ---------- מצב ---------- */
+let G;
+function newGame(levelIdx){
+  const L=LEVELS[levelIdx];
+  const cells=[]; for(let s=0;s<SEGS;s++) for(const r of L.rings) cells.push(cid(s,r));
+  const cs=new Set(cells);
+  const active=CATALOG.filter(h=>L.fams.includes(+h.variant[0]) && h.cells.every(c=>cs.has(c)));
+  const pot=cells.slice(); for(let i=pot.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[pot[i],pot[j]]=[pot[j],pot[i]];}
+  G={ L, levelIdx, cells, active,
+      board:new Map(), pot, hand:[], cpu:[], ledger:new Set(),
+      sel:new Set(), score:{p:0,c:0}, log:[], found:[], over:false, busy:false,
+      pending:null, passes:0,
+      stat:{declTotal:0, declOk:0, byFam:{}, turns:0, stones:0, asym:0, diag:0, harm:0} };
+  for(let i=0;i<L.hand;i++){ if(G.pot.length) G.hand.push(G.pot.pop()); if(G.pot.length) G.cpu.push(G.pot.pop()); }
+  render(); explain(null); renderLedger(); renderLog();
+}
+
+/* ---------- גיאומטריה ---------- */
+function sector(s,r){
+  const a0=(-90+s*30-15)*Math.PI/180, a1=(-90+s*30+15)*Math.PI/180;
+  const ri=RADII[r-1], ro=RADII[r];
+  const P=(rad,a)=>[CX+rad*Math.cos(a), CY+rad*Math.sin(a)];
+  const[x1,y1]=P(ro,a0),[x2,y2]=P(ro,a1),[x3,y3]=P(ri,a1),[x4,y4]=P(ri,a0);
+  return `M${x1} ${y1}A${ro} ${ro} 0 0 1 ${x2} ${y2}L${x3} ${y3}A${ri} ${ri} 0 0 0 ${x4} ${y4}Z`;
+}
+function center(id){
+  const{s,r}=parse(id); const a=(-90+s*30)*Math.PI/180; const rad=(RADII[r-1]+RADII[r])/2;
+  return [CX+rad*Math.cos(a), CY+rad*Math.sin(a)];
+}
+
+/* ---------- ציור ---------- */
+const SVG='http://www.w3.org/2000/svg';
+function render(figure){
+  const w=document.getElementById('wheel');
+  const inSet=new Set(G.cells);
+  let h=`<defs>
+    <radialGradient id="gloss" gradientUnits="userSpaceOnUse" cx="${CX-115}" cy="${CY-125}" r="360">
+      <stop offset="0" stop-color="#fff" stop-opacity=".50"/>
+      <stop offset=".45" stop-color="#fff" stop-opacity=".13"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient></defs>`;
+
+  // תאים ריקים / רפאים
+  for(let s=0;s<SEGS;s++) for(let r=1;r<=RINGS;r++){
+    const id=cid(s,r); if(!inSet.has(id)) continue;
+    if(G.board.has(id)) continue;
+    const playable=G.hand.includes(id) && !G.over && !G.busy && !G.pending;
+    const on=G.sel.has(id);
+    h+=`<g class="cell ${playable?'playable':''}" data-id="${id}">
+      <path class="ghost" d="${sector(s,r)}" fill="${hexOf(id)}"
+        opacity="${on?.62:.09}" ${on?'class="ghost sel"':''}/>
+      <path d="${sector(s,r)}" fill="none" stroke="rgba(255,255,255,${on?.55:.07})"
+        stroke-width="${on?1.6:1}" ${on?'stroke-dasharray="4 3"':''}/></g>`;
+  }
+  // אבנים מונחות
+  h+=`<g class="stone">`;
+  for(const [id,owner] of G.board){
+    const{s,r}=parse(id);
+    h+=`<path d="${sector(s,r)}" fill="${hexOf(id)}"/>
+        <path d="${sector(s,r)}" fill="url(#gloss)"/>
+        <path d="${sector(s,r)}" fill="none" stroke="rgba(255,255,255,${owner==='p'?.30:.14})" stroke-width="1"/>`;
+  }
+  h+=`</g>`;
+  // לב
+  h+=`<circle cx="${CX}" cy="${CY}" r="${RADII[0]-3}" fill="#F2F2EF" opacity=".92"/>`;
+  // תוויות
+  for(let s=0;s<SEGS;s++){
+    const a=(-90+s*30)*Math.PI/180, rad=RADII[5]+18;
+    h+=`<text class="lbl" x="${CX+rad*Math.cos(a)}" y="${CY+rad*Math.sin(a)+4}">${SEG_NAMES[s]}</text>`;
+  }
+  // צורת ההרמוניה
+  if(figure) for(const f of figure){
+    const pts=f.cells.map(center);
+    const closed=f.n>=3;
+    const d='M'+pts.map(p=>p.map(n=>n.toFixed(1)).join(' ')).join('L')+(closed?'Z':'');
+    h+=`<path class="figure" d="${d}"/>`;
+    for(const p of pts) h+=`<circle class="figure" cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#fff" stroke="none"/>`;
+  }
+  w.innerHTML=h;
+  w.querySelectorAll('.cell.playable').forEach(el=>
+    el.addEventListener('click',()=>toggle(el.dataset.id)));
+
+  // מגש
+  const t=document.getElementById('tray'); t.innerHTML='';
+  for(const id of G.hand){
+    const b=document.createElement('button');
+    b.className='gem'+(G.sel.has(id)?' on':'');
+    b.style.background=hexOf(id);
+    b.title=`${SEG_NAMES[parse(id).s]} · טבעת ${parse(id).r}`;
+    b.disabled=G.over||G.busy||!!G.pending;
+    b.addEventListener('click',()=>toggle(id));
+    t.appendChild(b);
+  }
+  document.getElementById('sP').textContent=Math.round(G.score.p);
+  document.getElementById('sC').textContent=Math.round(G.score.c);
+  document.getElementById('potN').textContent=G.pot.length;
+  document.getElementById('lvlTag').textContent=`רמה ${G.L.n} · ${G.L.name}`;
+  updateButtons();
+}
+function toggle(id){
+  if(G.over||G.busy||G.pending) return;
+  G.sel.has(id)?G.sel.delete(id):G.sel.add(id);
+  render(); preview();
+}
+function preview(){
+  const sel=[...G.sel];
+  if(sel.length<2){ explain(null); return; }
+  const f=detect(G.board,sel,G.ledger,G.active);
+  explain(f.length?{preview:true,list:f,...tally(f)}:{none:true});
+}
+function updateButtons(){
+  const sel=[...G.sel];
+  const ok=sel.length>=2 && detect(G.board,sel,G.ledger,G.active).length>0;
+  document.getElementById('bPlace').disabled=G.over||G.busy||!!G.pending||!ok;
+  document.getElementById('bSwap').disabled=G.over||G.busy||!!G.pending||sel.length===0||sel.length>3||!G.pot.length;
+  document.getElementById('bPass').disabled=G.over||G.busy||!!G.pending;
+  document.getElementById('bHint').disabled=G.over||G.busy||!!G.pending;
+}
+
+/* ---------- פאנלים ---------- */
+function explain(x){
+  const e=document.getElementById('explain');
+  if(!x){ e.innerHTML='<p class="empty">בחרי אבנים מהמגש.</p>'; return; }
+  if(x.none){ e.innerHTML='<p class="empty">הצירוף הזה אינו יוצר הרמוניה. נסי צירוף אחר.</p>'; return; }
+  let h='';
+  if(x.preview) h+='<p class="empty" style="margin-bottom:var(--s3)">תצוגה מקדימה</p>';
+  if(x.head) h+=`<p class="empty" style="margin-bottom:var(--s3)">${x.head}</p>`;
+  for(const f of x.list){
+    const F=FAMILY[f.n];
+    h+=`<div class="card">
+      <div class="h"><span class="name">${F.name} · ${VARIANT[f.variant]}</span>
+        <span class="pts">${Math.round(f.pts)}</span></div>
+      <div class="law">${LAW[f.variant]}</div>
+      <div class="mean">${F.mean}</div>
+      <div class="mult">${f.purity.label} ×${f.purity.m.toFixed(2)}${f.edge?' · קצה ×1.10':''}</div>
+    </div>`;
+  }
+  if(x.list.length>1)
+    h+=`<div class="row"><span>${x.asym?'זוגיות מעורבת ×1.25':'זוגיות אחידה ×1.00'}</span><span>${Math.round(x.total)}</span></div>`;
+  if(x.note) h+=`<p class="empty" style="margin-top:var(--s3)">${x.note}</p>`;
+  e.innerHTML=h;
+}
+function renderLedger(){
+  const el=document.getElementById('ledger');
+  if(!G.found.length){ el.innerHTML='<p class="empty">עוד לא נמצאה הרמוניה.</p>'; return; }
+  el.innerHTML=G.found.slice().reverse().map(f=>
+    `<div class="row"><span>${FAMILY[f.n].name} · ${VARIANT[f.variant]}</span><span>${Math.round(f.pts)}</span></div>`).join('');
+}
+function renderLog(){
+  document.getElementById('log').innerHTML =
+    G.log.length? G.log.slice(-9).reverse().map(l=>`<div class="log">${l}</div>`).join('')
+                : '<p class="empty">המשחק מתחיל.</p>';
+}
+
+/* ---------- מהלך השחקנית ---------- */
+document.getElementById('bPlace').onclick=()=>{
+  const sel=[...G.sel];
+  const list=detect(G.board,sel,G.ledger,G.active);
+  if(!list.length) return;
+  if(G.L.declare==='auto'){ commit(sel,list,1.0,null); return; }
+  G.pending={sel,list};
+  const d=document.getElementById('declare');
+  d.innerHTML='<span class="q">איזו הרמוניה יצרת?</span>';
+  for(const n of G.L.fams){
+    const b=document.createElement('button'); b.className='dbtn';
+    b.innerHTML=`<span class="n">${n}</span><span class="t">${FAMILY[n].name}</span>`;
+    b.onclick=()=>resolveDeclare(n);
+    d.appendChild(b);
+  }
+  if(G.L.declare==='opt'){
+    const b=document.createElement('button'); b.className='dbtn';
+    b.innerHTML='<span class="t">ויתור על הכרזה<br>60% ניקוד</span>';
+    b.onclick=()=>resolveDeclare(null);
+    d.appendChild(b);
+  }
+  d.classList.add('show');
+  document.getElementById('actions').style.display='none';
+  render();
+};
+function resolveDeclare(n){
+  const{sel,list}=G.pending;
+  let mult, note;
+  if(n===null){ mult=0.6; note='ללא הכרזה — 60% ניקוד.'; }
+  else if(n===list[0].n){ mult=1.0; note='הכרזה נכונה.'; G.stat.declOk++; }
+  else { mult=0.5; note=`ההרמוניה הגבוהה הייתה ${list[0].n} · ${FAMILY[list[0].n].name}. חצי ניקוד.`; }
+  if(n!==null){
+    G.stat.declTotal++;
+    const f=list[0].n; G.stat.byFam[f]=G.stat.byFam[f]||{ok:0,all:0};
+    G.stat.byFam[f].all++; if(n===f) G.stat.byFam[f].ok++;
+  }
+  document.getElementById('declare').classList.remove('show');
+  document.getElementById('actions').style.display='';
+  G.pending=null;
+  commit(sel,list,mult,note);
+}
+function commit(sel,list,mult,note){
+  const t=tally(list);
+  const pts=t.total*mult;
+  for(const c of sel){ G.board.set(c,'p'); G.hand.splice(G.hand.indexOf(c),1); }
+  for(const f of list) G.ledger.add(f.key);
+  G.found.push(...list);
+  G.score.p+=pts;
+  G.stat.turns++; G.stat.stones+=sel.length; G.stat.harm+=list.length;
+  if(t.asym) G.stat.asym++;
+  G.stat.diag+=list.filter(f=>f.purity.m===1.35).length;
+  if(sel.length===G.L.hand) G.score.p+=50;
+  bonuses('p');
+  G.log.push(`<b>את</b> — ${list.map(f=>FAMILY[f.n].name).join(', ')} · ${Math.round(pts)}`);
+  G.sel.clear(); G.passes=0;
+  while(G.hand.length<G.L.hand && G.pot.length) G.hand.push(G.pot.pop());
+  render(list); explain({list,...t,note});
+  renderLedger(); renderLog();
+  if(!G.hand.length && !G.pot.length){ G.score.p+=30; return finish(); }
+  setTimeout(cpuTurn,1400);
+}
+function bonuses(who){
+  const owned=[...G.board.keys()];
+  for(let s=0;s<SEGS;s++){
+    const col=G.cells.filter(c=>parse(c).s===s);
+    if(col.length>=3 && col.every(c=>G.board.has(c)) && !G.ledger.has('col'+s)){
+      G.ledger.add('col'+s); G.score[who]+=20;
+      G.log.push(`<b>${who==='p'?'את':'המחשב'}</b> — עמוד שלם ${SEG_NAMES[s]} · 20`);
+    }
+  }
+  for(const r of G.L.rings){
+    const ring=G.cells.filter(c=>parse(c).r===r);
+    if(ring.every(c=>G.board.has(c)) && !G.ledger.has('ring'+r)){
+      G.ledger.add('ring'+r); G.score[who]+=80;
+      G.log.push(`<b>${who==='p'?'את':'המחשב'}</b> — טבעת שלמה ${r} · 80`);
+    }
+  }
+}
+
+/* ---------- החלפה / ויתור / מצפן ---------- */
+document.getElementById('bSwap').onclick=()=>{
+  const sel=[...G.sel].slice(0,3);
+  for(const c of sel){ G.hand.splice(G.hand.indexOf(c),1); G.pot.push(c); }
+  for(let i=G.pot.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[G.pot[i],G.pot[j]]=[G.pot[j],G.pot[i]];}
+  while(G.hand.length<G.L.hand && G.pot.length) G.hand.push(G.pot.pop());
+  G.sel.clear(); G.log.push(`<b>את</b> — החלפת ${sel.length} אבנים`);
+  render(); explain(null); renderLog(); setTimeout(cpuTurn,700);
+};
+document.getElementById('bPass').onclick=()=>{
+  G.sel.clear(); G.passes++; G.log.push('<b>את</b> — ויתור');
+  render(); renderLog();
+  if(G.passes>=2 && !G.pot.length) return finish();
+  setTimeout(cpuTurn,700);
+};
+document.getElementById('bHint').onclick=()=>{
+  const best=bestMove(G.hand,'תכנן');
+  if(!best){ explain({none:true}); return; }
+  G.score.p-=5;
+  G.sel=new Set(best.sel);
+  render(); preview();
+  G.log.push('<b>את</b> — מצפן · 5−'); renderLog();
+};
+
+/* ---------- המחשב ---------- */
+function subsets(arr,max){
+  const out=[]; const n=arr.length;
+  for(let m=1;m<(1<<n);m++){
+    const p=[]; for(let i=0;i<n;i++) if(m&(1<<i)) p.push(arr[i]);
+    if(p.length>=2 && p.length<=max) out.push(p);
+  }
+  return out;
+}
+function bestMove(hand,style){
+  const opts=[];
+  for(const sub of subsets(hand,6)){
+    const list=detect(G.board,sub,G.ledger,G.active);
+    if(!list.length) continue;
+    const t=tally(list);
+    let v=t.total;
+    /* מדידה: אף היוריסטיקת חסימה או ניהול-יד שבדקתי לא עקפה את הבחירה החמדנית.
+       דרגה 3 קשה יותר משום שכל שבע המשפחות פעילות והלוח מלא — לא בשל מדיניות עדיפה. */
+    opts.push({sel:sub,list,total:t.total,v});
+  }
+  if(!opts.length) return null;
+  opts.sort((a,b)=>b.v-a.v);
+  if(style==='למד'){
+    const half=opts.slice(Math.floor(opts.length/2));
+    const pool=half.filter(o=>o.list[0].n<=3);
+    const pick=(pool.length?pool:half);
+    return pick[Math.random()*pick.length|0];
+  }
+  return opts[0];
+}
+function cpuTurn(){
+  if(G.over) return;
+  G.busy=true; render();
+  const mv=bestMove(G.cpu,G.L.ai);
+  if(!mv){
+    G.passes++;
+    if(G.pot.length){
+      const back=G.cpu.splice(0,Math.min(3,G.cpu.length)); G.pot.push(...back);
+      for(let i=G.pot.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[G.pot[i],G.pot[j]]=[G.pot[j],G.pot[i]];}
+      while(G.cpu.length<G.L.hand && G.pot.length) G.cpu.push(G.pot.pop());
+      G.log.push('<b>המחשב</b> — החלפה');
+    } else G.log.push('<b>המחשב</b> — ויתור');
+    G.busy=false; render(); renderLog();
+    if(G.passes>=2 && !G.pot.length) return finish();
+    return;
+  }
+  G.passes=0;
+  for(const c of mv.sel){ G.board.set(c,'c'); G.cpu.splice(G.cpu.indexOf(c),1); }
+  for(const f of mv.list) G.ledger.add(f.key);
+  G.found.push(...mv.list);
+  G.score.c+=mv.total;
+  if(mv.sel.length===G.L.hand) G.score.c+=50;
+  bonuses('c');
+  G.log.push(`<b>המחשב</b> — ${mv.list.map(f=>FAMILY[f.n].name).join(', ')} · ${Math.round(mv.total)}`);
+  while(G.cpu.length<G.L.hand && G.pot.length) G.cpu.push(G.pot.pop());
+  G.busy=false;
+  render(mv.list);
+  explain({head:'המהלך של המחשב', list:mv.list, ...tally(mv.list)});
+  renderLedger(); renderLog();
+  if(!G.cpu.length && !G.pot.length){ G.score.c+=30; return finish(); }
+}
+
+/* ---------- סיום ולוח אבחון ---------- */
+function finish(){
+  G.over=true;
+  G.score.p-=3*G.hand.length; G.score.c-=3*G.cpu.length;
+  render();
+  const s=G.stat;
+  const pct=(a,b)=>b?Math.round(100*a/b):0;
+  const rows=[
+    ['זיהוי יחס — דיוק הכרזה', pct(s.declOk,s.declTotal)],
+    ['ראיית קבוצה — אבנים לתור', Math.min(100,Math.round(100*(s.stones/Math.max(1,s.turns))/4))],
+    ['שקילת זוגיות — תורות במכפיל', pct(s.asym,s.turns)],
+    ['חציית שני הצירים — אלכסוניות', pct(s.diag,Math.max(1,s.harm))]];
+  const won=G.score.p>G.score.c;
+  const next=won && G.levelIdx<LEVELS.length-1;
+  let h=`<h2>${won?'ניצחת':'המחשב ניצח'}</h2>
+    <p>${Math.round(G.score.p)} מול ${Math.round(G.score.c)} · ${s.turns} תורות · ${G.found.length} הרמוניות</p>
+    <div class="bars">`;
+  for(const [label,v] of rows)
+    h+=`<div class="brow"><span>${label}</span><div class="track"><div class="fill" style="width:${v}%"></div></div><span class="p">${v}</span></div>`;
+  h+=`</div><p>${next?'הרמה הבאה נפתחה.':'אפשר לשחק שוב או לבחור רמה.'}</p><div class="lvls">`;
+  LEVELS.forEach((L,i)=>{ h+=`<button data-lvl="${i}" ${i===G.levelIdx+ (next?1:0)?'class="primary"':''}>רמה ${L.n} · ${L.name}</button>`; });
+  h+=`</div>`;
+  const p=document.getElementById('panel'); p.innerHTML=h;
+  p.querySelectorAll('button[data-lvl]').forEach(b=>b.onclick=()=>{
+    document.getElementById('over').classList.remove('show'); newGame(+b.dataset.lvl); });
+  document.getElementById('over').classList.add('show');
+}
+document.getElementById('bNew').onclick=()=>{
+  document.getElementById('declare').classList.remove('show');
+  document.getElementById('actions').style.display='';
+  newGame(G?G.levelIdx:0);
+};
+
+newGame(0);
+console.log('catalog instances:',CATALOG.length);
+</script>
+</body>
+</html>

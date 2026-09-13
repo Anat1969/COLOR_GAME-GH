@@ -1,0 +1,19 @@
+# תלויות ותוצרי בנייה
+node_modules/
+dist/
+*.local
+
+# הקובץ העצמאי ללחיצה — תוצר בנייה, נבנה מחדש ב-`npm run build:play`
+הרמוניה.html
+
+# כלי בדיקה חזותית (תוצר זמני)
+harmonia/scripts/shot.mjs
+board.svg
+board.png
+
+# הגדרות מקומיות של הכלי
+.claude/
+
+# מערכת
+.DS_Store
+Thumbs.db

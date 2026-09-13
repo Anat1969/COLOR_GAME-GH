@@ -1,0 +1,204 @@
+/* הרמוניה — עיצוב גלובלי.
+   הממשק אכרומטי בכוונה: כל הצבע יושב על הגלגל ובאבנים. גוון בממשק
+   משבש את שיפוט הצבע של השחקנית — זו הכרעה תפיסתית, לא אסתטית. */
+
+:root{
+  --canvas:#2B2B2E; --surface:#35353A; --surface-2:#3E3E43;
+  --line:rgba(255,255,255,.10); --line-2:rgba(255,255,255,.18);
+  --text:#EDEDEA; --dim:#A3A3A0; --faint:#76767A;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#root{height:100%}
+body{
+  background:var(--canvas); color:var(--text);
+  font-family:'Assistant',system-ui,sans-serif; font-size:16px; line-height:1.5;
+  overflow:hidden; -webkit-font-smoothing:antialiased;
+}
+#root{display:flex; flex-direction:column}
+h1,h2,h3,.num{font-family:'Frank Ruhl Libre',Georgia,serif; font-weight:500; line-height:1.2}
+
+/* ---------- shell ---------- */
+header{
+  display:flex; align-items:baseline; gap:var(--s5); flex-wrap:wrap;
+  padding:var(--s3) var(--s5); border-bottom:1px solid var(--line); flex:0 0 auto;
+}
+header h1{font-size:24px; letter-spacing:.02em}
+header .lvl{color:var(--dim); font-size:14px}
+header .lvl select{
+  font-family:'Assistant',sans-serif; font-size:14px; color:var(--text);
+  background:var(--surface-2); border:1px solid var(--line-2); border-radius:3px;
+  padding:3px 8px; cursor:pointer;
+}
+header .lvl select:focus-visible{outline:2px solid #fff; outline-offset:2px}
+header .spacer{flex:1}
+.score{display:flex; gap:var(--s5); align-items:baseline}
+.score .item{text-align:center}
+.score .v{font-family:'Frank Ruhl Libre',serif; font-size:28px; display:block;
+  font-variant-numeric:tabular-nums}
+.score .l{font-size:12px; color:var(--dim)}
+.score .item.lead .v{text-shadow:0 0 18px rgba(255,255,255,.45)}
+
+main{flex:1; display:grid; grid-template-columns:270px 1fr 270px; min-height:0}
+aside{padding:var(--s4); overflow-y:auto; border-inline-start:1px solid var(--line)}
+aside:first-child{border-inline-start:none; border-inline-end:1px solid var(--line)}
+aside h3{font-size:15px; color:var(--dim); margin-bottom:var(--s3); font-weight:400}
+#stage{display:flex; align-items:center; justify-content:center; min-height:0; padding:var(--s3)}
+svg#wheel{width:min(100%,660px); height:auto; max-height:100%; display:block}
+
+/* ---------- wheel ---------- */
+.cell.playable{cursor:pointer}
+.cell:focus{outline:none}
+.cell:focus-visible{outline:none}
+.cell:focus-visible > path:last-of-type{stroke:#fff; stroke-width:2.6; stroke-dasharray:none}
+.ghost-sel{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.42}50%{opacity:.72}}
+
+/* הצורה החתימתית — ההרמוניה משרטטת את עצמה. רגע ההוראה המרכזי. */
+.figure{animation:trace 2.6s ease-out forwards}
+.fig-halo{fill:none; stroke:#fff; stroke-width:5; stroke-linejoin:round;
+  stroke-linecap:round; opacity:.5}
+.fig-line{fill:none; stroke:#fff; stroke-width:1.7; stroke-linejoin:round;
+  stroke-linecap:round}
+.fig-node{fill:#fff; stroke:none}
+@keyframes trace{
+  0%{opacity:0} 12%{opacity:1} 72%{opacity:1} 100%{opacity:0}
+}
+
+.lbl{font-family:'Assistant',sans-serif; font-size:13px; fill:#8E8E93;
+  text-anchor:middle; letter-spacing:.04em; pointer-events:none}
+
+/* ---------- tray ---------- */
+footer{flex:0 0 auto; border-top:1px solid var(--line); padding:var(--s3) var(--s5)}
+#tray{display:flex; justify-content:center; gap:var(--s4); flex-wrap:wrap;
+  margin-bottom:var(--s4); min-height:64px; padding-top:var(--s1)}
+
+/* אבן זכוכית במגש — אותו מקור אור כמו על הלוח: מעל ומשמאל. */
+.gem{
+  --c:hsl(var(--h) var(--s) var(--l));
+  --deep:hsl(var(--h) clamp(0%,calc(var(--s) + 12%),100%) clamp(0%,calc(var(--l) - 20%),100%));
+  --hi:hsl(var(--h) clamp(0%,calc(var(--s) - 12%),100%) clamp(0%,calc(var(--l) + 24%),100%));
+  --caus:hsl(var(--h) clamp(0%,calc(var(--s) + 22%),100%) clamp(0%,calc(var(--l) + 26%),100%));
+  width:54px; height:54px; border-radius:50%; border:none; padding:0;
+  position:relative; cursor:pointer; isolation:isolate;
+  background:
+    radial-gradient(ellipse 26% 15% at 34% 23%, rgba(255,255,255,.95), rgba(255,255,255,0) 70%),
+    radial-gradient(circle at 35% 26%, rgba(255,255,255,.40), rgba(255,255,255,0) 45%),
+    radial-gradient(circle at 68% 73%, var(--caus), transparent 50%),
+    radial-gradient(circle at 37% 31%, var(--hi), var(--c) 50%, var(--deep) 100%);
+  box-shadow:
+    0 4px 10px rgba(0,0,0,.50),
+    0 1px 2px rgba(0,0,0,.40),
+    inset 1.5px 1.5px 2px rgba(255,255,255,.55),
+    inset -2px -2.5px 3px rgba(0,0,0,.42);
+  transition:transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s;
+}
+/* בליעת קצה — הזכוכית עבה יותר בשוליים, ולכן כהה ורוויה יותר שם */
+.gem::before{
+  content:''; position:absolute; inset:0; border-radius:50%; pointer-events:none;
+  background:radial-gradient(circle at 50% 50%, transparent 50%, var(--deep) 93%);
+  opacity:.7;
+}
+.gem .ring{
+  position:absolute; inset-inline:0; bottom:-19px; font-size:11px; color:var(--faint);
+  font-family:'Frank Ruhl Libre',serif; letter-spacing:.04em; pointer-events:none;
+}
+.gem:hover:not(:disabled),.gem.peek:not(:disabled){transform:translateY(-4px) scale(1.04)}
+.gem.on{
+  transform:translateY(-11px) scale(1.06);
+  box-shadow:
+    0 0 0 2px #fff, 0 8px 18px rgba(0,0,0,.58),
+    inset 1.5px 1.5px 2px rgba(255,255,255,.6),
+    inset -2px -2.5px 3px rgba(0,0,0,.42);
+}
+.gem.on .ring{color:var(--text)}
+.gem:focus-visible{outline:2px solid #fff; outline-offset:4px}
+.gem:disabled{opacity:.34; cursor:default; transform:none}
+
+.bar{display:flex; justify-content:center; align-items:center; gap:var(--s2); flex-wrap:wrap}
+button{
+  font-family:'Assistant',sans-serif; font-size:15px; color:var(--text);
+  background:var(--surface-2); border:1px solid var(--line-2); border-radius:3px;
+  padding:9px 20px; cursor:pointer; transition:background .15s,border-color .15s;
+}
+button:hover:not(:disabled){background:#4A4A50; border-color:rgba(255,255,255,.35)}
+button:disabled{opacity:.32; cursor:default}
+button.primary{background:#EDEDEA; color:#26262A; border-color:#EDEDEA; font-weight:600}
+button.primary:hover:not(:disabled){background:#fff}
+button:focus-visible{outline:2px solid #fff; outline-offset:2px}
+.hintline{width:100%; text-align:center; font-size:13px; color:var(--faint);
+  margin-top:var(--s2); min-height:1.4em}
+
+/* ---------- declare ---------- */
+#declare{display:flex; gap:var(--s2); justify-content:center; align-items:center; flex-wrap:wrap}
+#declare .q{color:var(--dim); font-size:14px; margin-inline-end:var(--s2)}
+.dbtn{min-width:96px; padding:8px 12px; text-align:center}
+.dbtn .n{font-family:'Frank Ruhl Libre',serif; font-size:20px; display:block; line-height:1}
+.dbtn .t{font-size:12px; color:var(--dim)}
+
+/* ---------- panels ---------- */
+.card{background:var(--surface); border:1px solid var(--line); border-radius:3px;
+  padding:var(--s3); margin-bottom:var(--s3)}
+.card .h{display:flex; justify-content:space-between; align-items:baseline; gap:var(--s2);
+  margin-bottom:var(--s1)}
+.card .name{font-family:'Frank Ruhl Libre',serif; font-size:18px}
+.card .pts{font-family:'Frank Ruhl Libre',serif; font-size:20px; font-variant-numeric:tabular-nums}
+.card .law{font-size:13px; color:var(--dim); margin-bottom:var(--s2)}
+.card .mean{font-size:13px; color:var(--text); opacity:.85}
+.card .mult{font-size:12px; color:var(--faint); margin-top:var(--s2)}
+.row{display:flex; justify-content:space-between; gap:var(--s2); font-size:13px; padding:5px 0;
+  border-bottom:1px solid rgba(255,255,255,.05)}
+.row span:last-child{font-family:'Frank Ruhl Libre',serif; color:var(--dim);
+  font-variant-numeric:tabular-nums}
+.log{font-size:13px; color:var(--dim); padding:5px 0; border-bottom:1px solid rgba(255,255,255,.05)}
+.log b{color:var(--text); font-weight:600}
+.empty{color:var(--faint); font-size:13px}
+
+/* ---------- overlay ---------- */
+#over{position:fixed; inset:0; background:rgba(28,28,31,.94); display:flex;
+  align-items:center; justify-content:center; z-index:20; padding:var(--s5)}
+.panel{background:var(--surface); border:1px solid var(--line-2); border-radius:4px;
+  padding:var(--s6); max-width:620px; width:100%; max-height:90vh; overflow-y:auto}
+.panel h2{font-size:30px; margin-bottom:var(--s2)}
+.panel p{color:var(--dim); font-size:14px; margin-bottom:var(--s5)}
+.bars{margin-bottom:var(--s5)}
+.brow{display:grid; grid-template-columns:1fr 150px 44px; align-items:center; gap:var(--s3);
+  padding:7px 0; font-size:14px}
+.track{height:5px; background:rgba(255,255,255,.10); border-radius:3px; overflow:hidden}
+.fill{height:100%; background:#EDEDEA; transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.brow .p{font-family:'Frank Ruhl Libre',serif; text-align:end; color:var(--dim);
+  font-variant-numeric:tabular-nums}
+.lvls{display:flex; gap:var(--s2); flex-wrap:wrap}
+
+/* ---------- מסכים צרים ----------
+   הפאנלים נערמים מתחת לגלגל ונגללים. הכותרת והמגש נשארים מקובעים —
+   המגש הוא הפקד הראשי ואסור שייעלם בגלילה. */
+@media (max-width:1100px){
+  main{display:flex; flex-direction:column; overflow-y:auto}
+  aside{border-inline:none; border-top:1px solid var(--line); overflow:visible}
+  aside:first-child{border-inline-end:none; order:2}
+  #stage{flex:0 0 auto; padding:var(--s2)}
+  svg#wheel{max-height:none}
+}
+@media (max-width:620px){
+  header{padding:var(--s2) var(--s3); gap:var(--s3)}
+  header h1{font-size:20px}
+  .score{gap:var(--s3)}
+  .score .v{font-size:22px}
+  footer{padding:var(--s2) var(--s3)}
+  #tray{gap:var(--s3)}
+  .gem{width:46px; height:46px}
+  button{padding:8px 14px; font-size:14px}
+  .panel{padding:var(--s4)}
+  .brow{grid-template-columns:1fr 70px 38px; gap:var(--s2); font-size:13px}
+}
+
+/* ---------- העדפת תנועה מופחתת ---------- */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms !important; animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+  /* הצורה החתימתית היא תוכן, לא קישוט — היא נשארת גלויה במקום להבהב */
+  .figure{animation:none; opacity:1}
+}

@@ -1,0 +1,50 @@
+# פרסום אוטומטי ל-GitHub Pages.
+# בכל דחיפה ל-main: בונה את המשחק (Vite → קובץ יחיד מוטמע) ומפרסם אותו
+# לכתובת הציבורית https://anat1969.github.io/COLOR_GAME-GH/.
+# כך כל שינוי שנדחף — בקוד, בטקסט או בתמונות — מתעדכן מיד באתר החי.
+name: פרסום המשחק
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}          # אפשר גם להריץ ידנית מלשונית Actions
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# פרסום אחד בכל רגע; דחיפה חדשה מבטלת ריצה קודמת שעדיין רצה
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: harmonia
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: harmonia/package-lock.json
+      - run: npm ci
+      - run: npm test          # בדיקת הרגרסיה — לא מפרסמים גרסה שבורה
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: harmonia/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
