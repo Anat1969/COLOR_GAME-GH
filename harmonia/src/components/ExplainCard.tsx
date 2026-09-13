@@ -3,15 +3,15 @@
 // ומשוב "עדיין לא הרמוניה" שמכוון אל התבנית הקרובה — הסבר בלבד, בלי הארת תאים.
 import type { Scored } from '../engine/types';
 import type { NearMiss } from '../engine/teach';
-import { FAMILY, VARIANT, LAW, F3_LABEL } from '../data/content';
-import { F3_DIST, F3_AXES, F3_SYM } from '../engine/family3';
+import { FAMILY, VARIANT, LAW, FX_LABEL } from '../data/content';
+import { DIST, AXES, SYM } from '../engine/factors';
 
-/** שורת המכפילים של הרמוניה — מודל משפחה 3 או טוהר/קצה הקלאסי */
+/** שורת המכפילים של הרמוניה — מודל הגורמים (distance/axes/symmetry) או טוהר/קצה הקלאסי */
 export function multLine(f: Scored): string {
-  if (f.f3) {
-    const d = `${F3_LABEL.distance[f.f3.distance]} ×${F3_DIST[f.f3.distance].toFixed(2)}`;
-    const a = `${F3_LABEL.axes[f.f3.axes]} ×${F3_AXES[f.f3.axes].toFixed(2)}`;
-    const s = `${F3_LABEL.symmetry[f.f3.symmetry]} ×${F3_SYM[f.f3.symmetry].toFixed(2)}`;
+  if (f.fx) {
+    const d = `${FX_LABEL.distance[f.fx.distance]} ×${DIST[f.fx.distance].toFixed(2)}`;
+    const a = `${FX_LABEL.axes[f.fx.axes]} ×${AXES[f.fx.axes].toFixed(2)}`;
+    const s = `${FX_LABEL.symmetry[f.fx.symmetry]} ×${SYM[f.fx.symmetry].toFixed(2)}`;
     return `${d} · ${a} · ${s}`;
   }
   return `${f.purity.label} ×${f.purity.m.toFixed(2)}${f.edge ? ' · קצה ×1.10' : ''}`;

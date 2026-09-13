@@ -54,14 +54,44 @@ export function buildCatalog(): Harmony[] {
       add('3i', [C(s, r), C(s - 1, r + 1), C(s - 3, r + 2)]);
     }
 
-  // ---- n=4 — סדר
-  for (let r = 1; r <= 5; r++) {
-    for (let s = 0; s < 3; s++) add('4a', [0, 1, 2, 3].map((k) => C(s + 3 * k, r))); // מרובע
-    for (let s = 0; s < 6; s++) add('4b', [C(s, r), C(s + 1, r), C(s + 6, r), C(s + 7, r)]); // מלבן
-  }
+  // ---- n=4 — סדר (מורחב: פיילוט מודל הניקוד, ראו engine/factors.ts)
+  // עמוד ערכי — אותו פלח, ארבע טבעות רצופות
   for (let s = 0; s < 12; s++)
-    for (let r = 1; r <= 4; r++)
-      add('4c', [C(s, r), C(s, r + 1), C(s + 1, r), C(s + 1, r + 1)]);    // שדה 2×2
+    for (let r = 1; r <= 2; r++) add('4a-run-v', [0, 1, 2, 3].map((k) => C(s, r + k)));
+  // רצף גוני — אותה טבעת, ארבעה פלחים רצופים
+  for (let r = 1; r <= 5; r++)
+    for (let s = 0; s < 12; s++) add('4c-run-h', [0, 1, 2, 3].map((k) => C(s + k, r)));
+  // מרובע — אותה טבעת, שלושה פלחים בין כל זוג (s, s+3, s+6, s+9)
+  for (let r = 1; r <= 5; r++)
+    for (let s = 0; s < 3; s++) add('4a-square', [0, 1, 2, 3].map((k) => C(s + 3 * k, r)));
+  // שדה — שני פלחים סמוכים × שתי טבעות סמוכות
+  for (let r = 1; r <= 4; r++)
+    for (let s = 0; s < 12; s++)
+      add('4d-block', [C(s, r), C(s + 1, r), C(s, r + 1), C(s + 1, r + 1)]);
+  // מלבן — אותה טבעת, שני צמדים סמוכים מנוגדים (s, s+1, s+6, s+7)
+  for (let r = 1; r <= 5; r++)
+    for (let s = 0; s < 6; s++) add('4b-rect', [C(s, r), C(s + 1, r), C(s + 6, r), C(s + 7, r)]);
+  // צמד כפול — שני זוגות ערכיים (פלח + טבעת סמוכה) בשני פלחים במרחק 2
+  for (let r = 1; r <= 4; r++)
+    for (let s = 0; s < 12; s++)
+      add('4e-twin', [C(s, r), C(s, r + 1), C(s + 2, r), C(s + 2, r + 1)]);
+  // ספירלה — פלח וטבעת עולים יחד בצעד קבוע (שני כיוונים)
+  for (let r = 1; r <= 2; r++)
+    for (let s = 0; s < 12; s++) {
+      add('4f-spiral', [0, 1, 2, 3].map((k) => C(s + k, r + k)));
+      add('4f-spiral', [0, 1, 2, 3].map((k) => C(s - k, r + k)));
+    }
+  // ספירלה משתנה — צעד פלח לא-קבוע (1,2,1) והטבעת עולה (שני כיוונים)
+  const step = [0, 1, 3, 4];
+  for (let r = 1; r <= 2; r++)
+    for (let s = 0; s < 12; s++) {
+      add('4g-spiralv', step.map((d, k) => C(s + d, r + k)));
+      add('4g-spiralv', step.map((d, k) => C(s - d, r + k)));
+    }
+  // עוגן משולש — שלוש באותו פלח (r,r+1,r+2) + רביעית בפלח הנגדי, בטבעת האמצעית
+  for (let r = 1; r <= 3; r++)
+    for (let s = 0; s < 12; s++)
+      add('4h-anchor', [C(s, r), C(s, r + 1), C(s, r + 2), C(s + 6, r + 1)]);
 
   // ---- n=5 — תנועה
   for (let s = 0; s < 12; s++) {

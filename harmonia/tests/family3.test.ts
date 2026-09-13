@@ -3,11 +3,15 @@
 // ושכל תשע התבניות קיימות בקטלוג בגודל 3.
 import { describe, it, expect } from 'vitest';
 import { buildCatalog } from '../src/engine/catalog';
-import { family3Score, FAMILY3 } from '../src/engine/family3';
+import { factorScore, FACTOR_PATTERNS } from '../src/engine/factors';
 import { valueOf, purity } from '../src/engine/scoring';
 import { parse } from '../src/engine/wheel';
 
 const cat = buildCatalog();
+const FAMILY3 = Object.fromEntries(
+  Object.entries(FACTOR_PATTERNS).filter(([k]) => k[0] === '3'),
+);
+const family3Score = factorScore;
 
 // הציונים המדויקים מתוך ה-JSON של המחברת
 const SPEC: Record<string, number> = {
@@ -26,7 +30,7 @@ describe('מודל הניקוד של משפחה 3', () => {
     const h = cat.find((x) => x.variant === '3h')!;    // עוגן מנוגד → 19
     const v = valueOf(h);
     expect(v.pts).toBe(19);
-    expect(v.f3).toBeDefined();
+    expect(v.fx).toBeDefined();
     expect(v.edge).toBe(false);
   });
 

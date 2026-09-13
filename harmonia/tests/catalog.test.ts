@@ -1,6 +1,6 @@
 // בדיקת הרגרסיה המכוננת של המשחק.
-// המספר 909 הוא נורת האזהרה הנוכחית: אם הוא זז, משהו במנוע נשבר.
-// (עודכן מ-597 עם הרחבת משפחה 3 — פיילוט מודל הניקוד החדש. richness > balance.)
+// המספר 1173 הוא נורת האזהרה הנוכחית: אם הוא זז, משהו במנוע נשבר.
+// (597 → 909 עם משפחה 3, → 1173 עם משפחה 4. פיילוט מודל הניקוד. richness > balance.)
 import { describe, it, expect } from 'vitest';
 import { buildCatalog } from '../src/engine/catalog';
 import { detect, tally, purity, valueOf, BASE } from '../src/engine/scoring';
@@ -9,8 +9,8 @@ import type { CellId, Family } from '../src/engine/types';
 const cat = buildCatalog();
 
 describe('הקטלוג', () => {
-  it('מייצר בדיוק 909 מופעים', () => {
-    expect(cat.length).toBe(909);
+  it('מייצר בדיוק 1173 מופעים', () => {
+    expect(cat.length).toBe(1173);
   });
 
   it('כל מופע בגודל התואם למשפחתו', () => {
@@ -29,10 +29,10 @@ describe('הקטלוג', () => {
     expect(cov.size).toBe(60);
   });
 
-  it('התפלגות המשפחות מאומתת (משפחה 3 מורחבת)', () => {
+  it('התפלגות המשפחות מאומתת (משפחות 3,4 מורחבות)', () => {
     const per: Record<string, number> = {};
     cat.forEach((h) => { per[h.variant[0]] = (per[h.variant[0]] || 0) + 1; });
-    expect(per).toEqual({ '2': 102, '3': 428, '4': 93, '5': 96, '6': 106, '7': 84 });
+    expect(per).toEqual({ '2': 102, '3': 428, '4': 357, '5': 96, '6': 106, '7': 84 });
   });
 
   it('כל המפתחות ייחודיים', () => {

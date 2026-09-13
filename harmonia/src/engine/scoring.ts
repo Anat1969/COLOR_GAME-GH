@@ -1,7 +1,7 @@
 // הרמוניה — זיהוי וניקוד. פונקציות טהורות, נטולות UI.
 import type { CellId, Harmony, Scored, Family } from './types';
 import { parse } from './wheel';
-import { FAMILY3, family3Score } from './family3';
+import { FACTOR_PATTERNS, factorScore } from './factors';
 
 export const BASE: Record<Family, number> = { 2: 4, 3: 9, 4: 16, 5: 25, 6: 36, 7: 49 };
 
@@ -16,17 +16,17 @@ export function purity(cells: CellId[]): Scored['purity'] {
 
 /**
  * ערך הרמוניה בודדת.
- * משפחה 3 (פיילוט): round(9 × distance × axes × symmetry) — ראו engine/family3.ts.
- * שאר המשפחות: בסיס × טוהר × קצה (המודל הקיים).
+ * תבניות שברישום הגורמים (משפחות 3, 4, …): round(n² × distance × axes × symmetry)
+ * — ראו engine/factors.ts. שאר המשפחות: בסיס × טוהר × קצה (המודל הקיים).
  */
 export function valueOf(h: Harmony): {
-  pts: number; purity: Scored['purity']; edge: boolean; f3?: Scored['f3'];
+  pts: number; purity: Scored['purity']; edge: boolean; fx?: Scored['fx'];
 } {
   const p = purity(h.cells);
   const n = +h.variant[0] as Family;
-  const f3 = FAMILY3[h.variant];
-  if (n === 3 && f3) {
-    return { pts: family3Score(h.variant), purity: p, edge: false, f3 };
+  const fx = FACTOR_PATTERNS[h.variant];
+  if (fx) {
+    return { pts: factorScore(h.variant), purity: p, edge: false, fx };
   }
   const rs = new Set(h.cells.map((c) => parse(c).r));
   const edge = rs.has(1) && rs.has(5);
