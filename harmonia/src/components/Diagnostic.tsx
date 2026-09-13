@@ -8,12 +8,13 @@ interface Props {
   G: GameState;
   unlocked: number;
   clock: { p: number; c: number };
+  solo?: boolean;
   onPick: (levelIdx: number) => void;
 }
 
 const fmt = (sec: number): string => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 
-export function Diagnostic({ G, unlocked, clock, onPick }: Props) {
+export function Diagnostic({ G, unlocked, clock, solo, onPick }: Props) {
   const s = G.stat;
   const pct = (a: number, b: number) => (b ? Math.round((100 * a) / b) : 0);
   const rows: [string, number, string][] = [
@@ -28,7 +29,7 @@ export function Diagnostic({ G, unlocked, clock, onPick }: Props) {
   ];
   const won = G.score.p > G.score.c;
   const nextIdx = G.levelIdx + 1;
-  const opened = won && nextIdx < LEVELS.length && nextIdx <= unlocked;
+  const opened = nextIdx < LEVELS.length && nextIdx <= unlocked && (solo || won);
 
   // דיוק לפי משפחה — מראה איזו משפחה עוד לא נקראת נכון
   const fams = Object.entries(s.byFam)
@@ -38,10 +39,12 @@ export function Diagnostic({ G, unlocked, clock, onPick }: Props) {
 
   return (
     <div className="panel" role="dialog" aria-modal="true" aria-label="לוח האבחון">
-      <h2>{won ? 'ניצחת' : 'המחשב ניצח'}</h2>
+      <h2>{solo ? 'סיום התרגול' : won ? 'ניצחת' : 'המחשב ניצח'}</h2>
       <p>
-        {Math.round(G.score.p)} מול {Math.round(G.score.c)} · {s.turns} תורות ·{' '}
-        {G.found.length} הרמוניות · זמן חשיבה {fmt(clock.p)} מול {fmt(clock.c)}
+        {solo
+          ? `${G.found.length} הרמוניות · ${s.turns} תורות · זמן חשיבה ${fmt(clock.p)}`
+          : `${Math.round(G.score.p)} מול ${Math.round(G.score.c)} · ${s.turns} תורות · ` +
+            `${G.found.length} הרמוניות · זמן חשיבה ${fmt(clock.p)} מול ${fmt(clock.c)}`}
       </p>
 
       <div className="bars">

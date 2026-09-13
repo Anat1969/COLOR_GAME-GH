@@ -7,6 +7,7 @@ interface Props {
   turn: 'p' | 'c';
   clock: { p: number; c: number };
   over: boolean;
+  solo?: boolean;
 }
 
 const fmt = (sec: number): string => {
@@ -15,7 +16,21 @@ const fmt = (sec: number): string => {
   return `${m}:${String(s).padStart(2, '0')}`;
 };
 
-export function TurnBar({ turn, clock, over }: Props) {
+export function TurnBar({ turn, clock, over, solo }: Props) {
+  // סולו: אין יריב — פס תרגול עם שעון חשיבה אחד, בלי צד "מחשב".
+  if (solo) {
+    return (
+      <div className="turnbar solo" role="status" aria-live="polite">
+        <div className="tside on">
+          <span className="twho">זמן חשיבה</span>
+          <span className="tclk num">{fmt(clock.p)}</span>
+        </div>
+        <div className="tmsg">{over ? 'סיום התרגול' : 'מצב תרגול — בונים ולומדים'}</div>
+        <div className="tside" aria-hidden="true" />
+      </div>
+    );
+  }
+
   const active = (side: 'p' | 'c') => !over && turn === side;
   return (
     <div className="turnbar" role="status" aria-live="polite">

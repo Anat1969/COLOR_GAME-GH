@@ -32,6 +32,7 @@ export interface Level {
   declare: DeclareMode;
   ai: AiStyle;
   hand: number;           // גודל היד — ראו CLAUDE.md ממצא 3
+  solo?: boolean;         // רמת תרגול ללא יריב ממוחשב
 }
 
 export interface Stats {

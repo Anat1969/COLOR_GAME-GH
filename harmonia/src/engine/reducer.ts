@@ -25,9 +25,10 @@ export function newGame(levelIdx: number): GameState {
   const pot = shuffle(cells.slice());
   const hand: CellId[] = [];
   const cpu: CellId[] = [];
+  // מצב סולו (רמה 1): אין יריב — כל האבנים זמינות לשחקנית, לא מחלקים למחשב.
   for (let i = 0; i < level.hand; i++) {
     if (pot.length) hand.push(pot.pop()!);
-    if (pot.length) cpu.push(pot.pop()!);
+    if (!level.solo && pot.length) cpu.push(pot.pop()!);
   }
   return {
     level, levelIdx, cells, active,
@@ -90,6 +91,8 @@ export function applyPlacement(
 }
 
 export function isGameOver(G: GameState): boolean {
+  // סולו: נגמר כשהשחקנית מיצתה את היד והקופה (cpu ריק תמיד, ולכן לא נספר).
+  if (G.level.solo) return G.hand.length === 0 && G.pot.length === 0;
   const handEmpty = (G.hand.length === 0 || G.cpu.length === 0) && G.pot.length === 0;
   const stuck = G.passes >= 2 && G.pot.length === 0;
   return handEmpty || stuck;

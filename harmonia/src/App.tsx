@@ -15,6 +15,7 @@ import { Ledger } from './components/Ledger';
 import { Diagnostic } from './components/Diagnostic';
 import { TurnBar } from './components/TurnBar';
 import { FamiliesLegend } from './components/FamiliesLegend';
+import { RelationTypes } from './components/RelationTypes';
 import { Palette } from './components/Palette';
 
 const STORE = 'harmonia.progress';
@@ -76,7 +77,8 @@ export default function App() {
 
   const finish = useCallback(() => {
     applyEndPenalty(G);
-    if (G.score.p > G.score.c) {
+    const advance = G.level.solo ? G.found.length >= 1 : G.score.p > G.score.c;
+    if (advance) {
       writeUnlocked(G.levelIdx + 1);
       setUnlocked(readUnlocked());
     }
@@ -121,9 +123,18 @@ export default function App() {
     setExplain({ list, committed: true, ...t, note });
     setHover(null);
     redraw();
+    if (G.level.solo) {
+      // תרגול סולו: אין תור מחשב. פותחים את רמה 2 אחרי שלוש הרמוניות ("קלטת את הרעיון").
+      if (G.found.length >= 3 && G.levelIdx + 1 > unlocked) {
+        writeUnlocked(G.levelIdx + 1);
+        setUnlocked(readUnlocked());
+      }
+      if (isGameOver(G)) finish();
+      return;
+    }
     if (!G.hand.length && !G.pot.length) { G.score.p += 30; finish(); return; }
     setTimeout(cpuTurn, 1600);
-  }, [G, redraw, cpuTurn, finish]);
+  }, [G, redraw, cpuTurn, finish, unlocked]);
 
   // "סיום הבחירה ובדיקה" — פעיל תמיד כשיש אבן נבחרת. נותן ניקוד או משוב מכוון.
   const submit = useCallback(() => {
@@ -165,7 +176,7 @@ export default function App() {
     G.sel.clear();
     G.log.push(`<b>את</b> — החלפת ${sel.length} אבנים`);
     setExplain(null); setFigure(null); setHover(null); redraw();
-    setTimeout(cpuTurn, 700);
+    if (!G.level.solo) setTimeout(cpuTurn, 700);
   }, [G, redraw, cpuTurn]);
 
   const pass = useCallback(() => {
@@ -173,7 +184,7 @@ export default function App() {
     G.log.push('<b>את</b> — ויתור');
     setExplain(null); setFigure(null); redraw();
     if (isGameOver(G)) { finish(); return; }
-    setTimeout(cpuTurn, 700);
+    if (!G.level.solo) setTimeout(cpuTurn, 700);
   }, [G, redraw, cpuTurn, finish]);
 
   const hint = useCallback(() => {
@@ -196,16 +207,19 @@ export default function App() {
   }, [G, redraw]);
 
   const sel = [...G.sel];
+  const solo = !!G.level.solo;
   const busy = G.over || G.busy || !!G.pending;
   const turn: 'p' | 'c' = G.busy ? 'c' : 'p';
   const showPalette = !!explain && !explain.none && !explain.preview && (explain.list?.length ?? 0) > 0;
   const showPreviewPalette = !!explain && explain.preview && (explain.list?.length ?? 0) > 0;
 
   const guidance =
-    G.over ? 'המשחק הסתיים.'
+    G.over ? (solo ? 'סיום התרגול. אפשר לנסות שוב או לעבור רמה.' : 'המשחק הסתיים.')
     : G.busy ? 'המחשב חושב את מהלכו…'
     : G.pending ? 'נקבי במשפחת ההרמוניה שיצרת כדי לקבל ניקוד מלא.'
-    : sel.length === 0 ? 'בחרי אבנים מהמגש, ואז לחצי "סיום הבחירה".'
+    : sel.length === 0 ? (solo
+        ? 'תרגול חופשי — בחרי אבנים ובני הרמוניה. אין יריב, אין לחץ.'
+        : 'בחרי אבנים מהמגש, ואז לחצי "סיום הבחירה".')
     : 'לחצי "סיום הבחירה" כדי לבדוק ולקבל ניקוד ומשוב.';
 
   return (
@@ -224,12 +238,18 @@ export default function App() {
         </label>
         <span className="spacer" />
         <div className="score" aria-live="polite">
-          <div className={`item${G.score.p >= G.score.c ? ' lead' : ''}`}>
+          <div className={`item${solo || G.score.p >= G.score.c ? ' lead' : ''}`}>
             <span className="v num">{Math.round(G.score.p)}</span><span className="l">את</span>
           </div>
-          <div className={`item${G.score.c > G.score.p ? ' lead' : ''}`}>
-            <span className="v num">{Math.round(G.score.c)}</span><span className="l">המחשב</span>
-          </div>
+          {solo ? (
+            <div className="item">
+              <span className="v num">{G.found.length}</span><span className="l">הרמוניות</span>
+            </div>
+          ) : (
+            <div className={`item${G.score.c > G.score.p ? ' lead' : ''}`}>
+              <span className="v num">{Math.round(G.score.c)}</span><span className="l">המחשב</span>
+            </div>
+          )}
           <div className="item">
             <span className="v num">{G.pot.length}</span><span className="l">בקופה</span>
           </div>
@@ -238,14 +258,16 @@ export default function App() {
 
       <main>
         <aside>
-          <h3>מקרא המשפחות</h3>
+          <h3>אופי הצירופים</h3>
+          <RelationTypes />
+          <h3 style={{ marginTop: 20 }}>המשפחות ברמה זו</h3>
           <FamiliesLegend fams={G.level.fams} />
-          <h3 style={{ marginTop: 24 }}>ספר ההרמוניות</h3>
+          <h3 style={{ marginTop: 20 }}>ספר ההרמוניות</h3>
           <Ledger G={G} />
         </aside>
 
         <div id="center">
-          <TurnBar turn={turn} clock={clock} over={G.over} />
+          <TurnBar turn={turn} clock={clock} over={G.over} solo={solo} />
           <div id="stage">
             <Wheel G={G} figure={figure} hover={hover} onToggle={toggle} onHover={setHover} />
           </div>
@@ -284,9 +306,9 @@ export default function App() {
               disabled={busy || sel.length === 0 || sel.length > 3 || !G.pot.length}
               onClick={swap}
             >החלפה</button>
-            <button disabled={busy} onClick={pass}>ויתור</button>
+            {!solo && <button disabled={busy} onClick={pass}>ויתור</button>}
             <button disabled={busy} onClick={hint}>מצפן · 5−</button>
-            <button onClick={() => start(G.levelIdx)}>משחק חדש</button>
+            <button onClick={() => start(G.levelIdx)}>{solo ? 'לוח חדש' : 'משחק חדש'}</button>
           </div>
         )}
         <p className="hintline" aria-live="polite">{guidance}</p>
@@ -294,7 +316,7 @@ export default function App() {
 
       {G.over && (
         <div id="over">
-          <Diagnostic G={G} unlocked={unlocked} clock={clock} onPick={start} />
+          <Diagnostic G={G} unlocked={unlocked} clock={clock} solo={solo} onPick={start} />
         </div>
       )}
     </>

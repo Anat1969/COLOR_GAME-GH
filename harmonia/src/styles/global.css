@@ -64,6 +64,17 @@ svg#wheel{width:min(100%,640px); height:auto; max-height:100%; display:block}
 .turnbar .tmsg{font-family:'Frank Ruhl Libre',serif; font-size:17px; text-align:center;
   color:var(--text)}
 
+/* ---------- אופי הצירופים ---------- */
+.rtypes{list-style:none; display:flex; flex-direction:column; gap:var(--s2)}
+.rtype{display:flex; flex-direction:column; gap:2px; padding:var(--s2) var(--s3);
+  border:1px solid var(--line); border-radius:3px; background:rgba(255,255,255,.02)}
+.rt-title{font-family:'Frank Ruhl Libre',serif; font-size:15px}
+.rt-body{font-size:12px; color:var(--dim); line-height:1.45}
+
+/* ---------- מצב תרגול (סולו) ---------- */
+.turnbar.solo .tmsg{color:var(--dim)}
+.turnbar.solo .tside[aria-hidden]{min-width:74px}
+
 /* ---------- מקרא המשפחות ---------- */
 .legend{list-style:none; display:flex; flex-direction:column; gap:var(--s2)}
 .leg-item{display:flex; gap:var(--s3); align-items:flex-start}

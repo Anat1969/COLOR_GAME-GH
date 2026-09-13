@@ -30,6 +30,24 @@ export const LAW: Record<string, string> = {
   '7c': 'ספירלה — קפיצות של שניים, הטבעת עולה ויורדת',
 };
 
+// אופי הצירופים — השכבה שמעל החוקים הפרטניים. שני אופיים, וכלל שילוב.
+export const RELATION_NOTES: { title: string; body: string }[] = [
+  {
+    title: 'ניגוד',
+    body: 'הצבע שממול — קו ישר דרך מרכז הגלגל, דילוג של שישה פלחים. שניים בלבד.',
+  },
+  {
+    title: 'רצף — מתחיל משלושה',
+    body: 'שלושה גוונים ומעלה בכיוון אחד. שלושה כיוונים: לאורך הפלח (טון מתבהר), ' +
+      'סביב הטבעת (גוון מתגלגל), או ספירלי — פלח וטבעת עולים יחד.',
+  },
+  {
+    title: 'צירוף',
+    body: 'שילוב של יחסים — אך עם הגיון: הגיון של מיקום על הגלגל, והגיון של משמעות ' +
+      'המספר. לא ערבוב אקראי.',
+  },
+];
+
 export const FAMILY: Record<number, { name: string; mean: string }> = {
   2: { name: 'ניגוד', mean: 'שניים אינם קבוצה — הם ציר. כל אחד מגדיר את השני בשלילה.' },
   3: { name: 'דירוג', mean: 'השלישי הוא הראשון שיכול להיות באמצע. עם שלושה נולד כיוון.' },
@@ -41,7 +59,7 @@ export const FAMILY: Record<number, { name: string; mean: string }> = {
 
 // גודל היד לפי רמה — ראו CLAUDE.md ממצא 3
 export const LEVELS: Level[] = [
-  { n: 1, name: 'ציר', rings: [2, 3, 4], fams: [2, 3], declare: 'must', ai: 'למד', hand: 7 },
+  { n: 1, name: 'ציר', rings: [2, 3, 4], fams: [2, 3], declare: 'must', ai: 'למד', hand: 7, solo: true },
   { n: 2, name: 'מבנה', rings: [2, 3, 4], fams: [2, 3, 4], declare: 'must', ai: 'למד', hand: 7 },
   { n: 3, name: 'תנועה', rings: [1, 2, 3, 4, 5], fams: [2, 3, 4, 5], declare: 'must', ai: 'תכנן', hand: 9 },
   { n: 4, name: 'מקצב', rings: [1, 2, 3, 4, 5], fams: [2, 3, 4, 5, 6], declare: 'opt', ai: 'תכנן', hand: 9 },
