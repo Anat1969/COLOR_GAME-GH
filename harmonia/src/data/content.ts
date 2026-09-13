@@ -82,11 +82,12 @@ export const FAMILY: Record<number, { name: string; mean: string }> = {
   7: { name: 'מחזור', mean: 'שבעה חוצים את מחצית הגלגל. העין שבה — לנקודה שכבר השתנתה.' },
 };
 
-// גודל היד לפי רמה — ראו CLAUDE.md ממצא 3
+// רמות ההדרכה (1–3): משפחה יחידה, מהלך = בדיוק N אבנים היוצרות משפחה N.
+// fams:[N] מבטל אוטומטית את שאר המשפחות ב-newGame. רמות 4–5: התנהגות קיימת.
 export const LEVELS: Level[] = [
-  { n: 1, name: 'ציר', rings: [2, 3, 4], fams: [2, 3], declare: 'must', ai: 'למד', hand: 7, solo: true },
-  { n: 2, name: 'מבנה', rings: [2, 3, 4], fams: [2, 3, 4], declare: 'must', ai: 'למד', hand: 7 },
-  { n: 3, name: 'תנועה', rings: [1, 2, 3, 4, 5], fams: [2, 3, 4, 5], declare: 'must', ai: 'תכנן', hand: 9 },
+  { n: 1, name: 'ציר', rings: [2, 3, 4], fams: [3], declare: 'must', ai: 'למד', hand: 7, solo: true, require: 3 },
+  { n: 2, name: 'מבנה', rings: [2, 3, 4], fams: [4], declare: 'must', ai: 'למד', hand: 7, require: 4 },
+  { n: 3, name: 'תנועה', rings: [1, 2, 3, 4, 5], fams: [5], declare: 'must', ai: 'תכנן', hand: 9, require: 5 },
   { n: 4, name: 'מקצב', rings: [1, 2, 3, 4, 5], fams: [2, 3, 4, 5, 6], declare: 'opt', ai: 'תכנן', hand: 9 },
   { n: 5, name: 'מחזור', rings: [1, 2, 3, 4, 5], fams: [2, 3, 4, 5, 6, 7], declare: 'auto', ai: 'הלחן', hand: 9 },
 ];

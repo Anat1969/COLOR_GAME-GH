@@ -23,7 +23,26 @@ export interface NearMiss {
 
 export type Analysis =
   | { ok: true; list: Scored[] }
-  | { ok: false; near: NearMiss | null };
+  | { ok: false; near: NearMiss | null; size?: { need: number; have: number } };
+
+/** מפתח ממוין של בחירה — תואם למפתחות הקטלוג */
+const keyOf = (cells: CellId[]): string => [...cells].sort().join('|');
+
+/**
+ * מהלך הדרכה חוקי: בדיוק `require` אבנים שהן בעצמן הרמוניה פעילה (משפחה require),
+ * שטרם נוקדה. מחזיר את ההרמוניה, או null.
+ */
+export function teachingMove(
+  sel: CellId[],
+  require: number,
+  ledger: Set<string>,
+  active: Harmony[],
+): Harmony | null {
+  if (sel.length !== require) return null;
+  const k = keyOf(sel);
+  if (ledger.has(k)) return null;
+  return active.find((h) => h.key === k) ?? null;
+}
 
 /**
  * מנתח את הבחירה הנוכחית.
@@ -38,10 +57,32 @@ export function analyzeSelection(
   sel: CellId[],
   ledger: Set<string>,
   active: Harmony[],
+  require?: number,
 ): Analysis {
+  // רמת הדרכה: חוקי רק אם בדיוק `require` אבנים הן הרמוניה שלמה ממשפחה require.
+  if (require !== undefined) {
+    const list = detect(board, sel, ledger, active);
+    const selSet0 = new Set(sel);
+    const exact = list.filter(
+      (h) => h.cells.length === require && h.cells.every((c) => selSet0.has(c)),
+    );
+    if (sel.length === require && exact.length) return { ok: true, list: exact };
+    const near = nearestMiss(board, sel, ledger, active);
+    return { ok: false, near, size: { need: require, have: sel.length } };
+  }
+
   const list = detect(board, sel, ledger, active);
   if (list.length) return { ok: true, list };
+  return { ok: false, near: nearestMiss(board, sel, ledger, active) };
+}
 
+/** התבנית הקטלוגית שהבחירה הכי קרובה להשלים — הסבר בלבד, בלי מזהי תאים. */
+function nearestMiss(
+  board: Map<CellId, Owner>,
+  sel: CellId[],
+  ledger: Set<string>,
+  active: Harmony[],
+): NearMiss | null {
   const selSet = new Set(sel);
   let best: NearMiss | null = null;
   let bestScore = -Infinity;
@@ -64,5 +105,5 @@ export function analyzeSelection(
       best = { variant: h.variant, n: +h.variant[0] as Family, have, need, missing, extra };
     }
   }
-  return { ok: false, near: best };
+  return best;
 }

@@ -34,6 +34,7 @@ export interface Level {
   ai: AiStyle;
   hand: number;           // גודל היד — ראו CLAUDE.md ממצא 3
   solo?: boolean;         // רמת תרגול ללא יריב ממוחשב
+  require?: number;        // רמת הדרכה: מהלך = בדיוק N אבנים שהן הרמוניה ממשפחה N
 }
 
 export interface Stats {

@@ -9,12 +9,13 @@ import { GlassDefs, Ghost, Shadows, Socket, Stone } from './Gem';
 interface Props {
   G: GameState;
   figure: Scored[] | null;
+  ghostFigure?: Scored[] | null;   // הצירוף המיטבי שהוחמץ — קו מקווקו עמום
   hover: CellId | null;
   onToggle: (id: CellId) => void;
   onHover: (id: CellId | null) => void;
 }
 
-export function Wheel({ G, figure, hover, onToggle, onHover }: Props) {
+export function Wheel({ G, figure, ghostFigure, hover, onToggle, onHover }: Props) {
   const inSet = new Set(G.cells);
   const live = !G.over && !G.busy && !G.pending;
   const inHand = new Set(G.hand);
@@ -115,6 +116,22 @@ export function Wheel({ G, figure, hover, onToggle, onHover }: Props) {
       {SEG_NAMES_HE.map((name, s) => {
         const [x, y] = labelPos(s, rMax);
         return <text key={SEG_NAMES[s]} className="lbl" x={x} y={y}>{name}</text>;
+      })}
+
+      {/* הצירוף המיטבי שהוחמץ — קו מקווקו עמום, נבדל מהצורה המלאה */}
+      {ghostFigure?.map((f, i) => {
+        const pts = f.cells.map(center);
+        const closed = f.n >= 3;
+        const d = 'M' + pts.map((p) => p.map((n) => n.toFixed(1)).join(' ')).join('L')
+          + (closed ? 'Z' : '');
+        return (
+          <g key={`ghost-${f.key}-${i}`} className="ghost-figure">
+            <path className="gf-line" d={d} />
+            {pts.map((p, j) => (
+              <circle key={j} className="gf-node" cx={p[0]} cy={p[1]} r={2.6} />
+            ))}
+          </g>
+        );
       })}
 
       {/* הצורה החתימתית — ההרמוניה משרטטת את עצמה */}

@@ -17,10 +17,18 @@ function subsets(arr: CellId[], max: number): CellId[][] {
   return out;
 }
 
-export function bestMove(G: GameState, hand: CellId[], style: AiStyle): Move | null {
+export function bestMove(
+  G: GameState, hand: CellId[], style: AiStyle, exactSize?: number,
+): Move | null {
   const opts: Move[] = [];
-  for (const sub of subsets(hand, 6)) {
-    const list = detect(G.board, sub, G.ledger, G.active);
+  for (const sub of subsets(hand, exactSize ?? 6)) {
+    if (exactSize !== undefined && sub.length !== exactSize) continue;
+    let list = detect(G.board, sub, G.ledger, G.active);
+    // רמת הדרכה: רק צירוף שהוא בעצמו הרמוניה שלמה באורך הנדרש
+    if (exactSize !== undefined) {
+      const subSet = new Set(sub);
+      list = list.filter((h) => h.cells.length === exactSize && h.cells.every((c) => subSet.has(c)));
+    }
     if (!list.length) continue;
     const t = tally(list);
     let v = t.total;

@@ -1,18 +1,19 @@
 // הרמוניה — הרכיב הראשי. מחבר את המנוע (פונקציות טהורות) ל-UI.
 import { useEffect, useReducer, useRef, useState, useCallback } from 'react';
-import type { CellId, GameState, Family, Scored } from './engine/types';
+import type { CellId, GameState, Family, Scored, Move } from './engine/types';
 import {
   newGame, applyPlacement, applyEndPenalty, isGameOver, detect, tally,
 } from './engine/reducer';
 import { analyzeSelection } from './engine/teach';
 import { bestMove } from './engine/ai';
-import { FAMILY, LEVELS } from './data/content';
+import { FAMILY, VARIANT, LEVELS } from './data/content';
 import { Wheel } from './components/Wheel';
 import { HandTray } from './components/HandTray';
 import { DeclareBar } from './components/DeclareBar';
 import { ExplainCard, type Explain } from './components/ExplainCard';
 import { Ledger } from './components/Ledger';
 import { Diagnostic } from './components/Diagnostic';
+import { BestMove } from './components/BestMove';
 import { TurnBar } from './components/TurnBar';
 import { FamiliesLegend } from './components/FamiliesLegend';
 import { RelationTypes } from './components/RelationTypes';
@@ -36,6 +37,7 @@ export default function App() {
   const [hover, setHover] = useState<CellId | null>(null);
   const [unlocked, setUnlocked] = useState(readUnlocked);
   const [clock, setClock] = useState({ p: 0, c: 0 });
+  const [bestPanel, setBestPanel] = useState<{ best: Move; actualPts: number } | null>(null);
   const G = gRef.current;
   const redraw = useCallback(() => force(), []);
 
@@ -56,11 +58,19 @@ export default function App() {
     setExplain(null);
     setHover(null);
     setClock({ p: 0, c: 0 });
+    setBestPanel(null);
     redraw();
   }, [redraw]);
 
   const preview = useCallback(() => {
     const sel = [...G.sel];
+    // רמת הדרכה: תצוגה מקדימה רק כשיש בדיוק `require` אבנים שהן הרמוניה שלמה
+    if (G.level.require !== undefined) {
+      if (sel.length !== G.level.require) { setExplain(null); return; }
+      const a = analyzeSelection(G.board, sel, G.ledger, G.active, G.level.require);
+      setExplain(a.ok ? { preview: true, list: a.list, ...tally(a.list) } : null);
+      return;
+    }
     if (sel.length < 2) { setExplain(null); return; }
     const list = detect(G.board, sel, G.ledger, G.active);
     setExplain(list.length
@@ -109,7 +119,7 @@ export default function App() {
       applyPlacement(G, mv.sel, mv.list, 'c');
       G.busy = false;
       setFigure(mv.list);
-      setExplain({ head: 'המהלך של המחשב', list: mv.list, committed: true, ...tally(mv.list) });
+      setExplain({ head: 'המהלך של המחשב', list: mv.list, committed: true, placed: mv.sel, ...tally(mv.list) });
       redraw();
       if (!G.cpu.length && !G.pot.length) { G.score.c += 30; finish(); }
     }, 900);
@@ -117,10 +127,18 @@ export default function App() {
 
   const commit = useCallback((sel: CellId[], list: Scored[], mult: number, note?: string) => {
     const t = tally(list);
+    const placed = [...sel];
+    // רמת הדרכה: לפני שמפנים את היד, חשב את הצירוף המיטבי שאפשר היה (לפי חוקי הרמה)
+    if (G.level.require !== undefined) {
+      const pre = bestMove(G, [...G.hand], 'תכנן', G.level.require);
+      setBestPanel(pre ? { best: pre, actualPts: t.total } : null);
+    } else {
+      setBestPanel(null);
+    }
     applyPlacement(G, sel, list, 'p', mult);
     G.sel.clear();
     setFigure(list);
-    setExplain({ list, committed: true, ...t, note });
+    setExplain({ list, committed: true, placed, ...t, note });
     setHover(null);
     redraw();
     if (G.level.solo) {
@@ -140,26 +158,36 @@ export default function App() {
   const submit = useCallback(() => {
     const sel = [...G.sel];
     if (!sel.length) return;
-    const a = analyzeSelection(G.board, sel, G.ledger, G.active);
-    if (!a.ok) { setExplain({ none: true, near: a.near, list: [] }); return; }
+    const a = analyzeSelection(G.board, sel, G.ledger, G.active, G.level.require);
+    if (!a.ok) { setExplain({ none: true, near: a.near, size: a.size, list: [] }); return; }
     if (G.level.declare === 'auto') { commit(sel, a.list, 1.0); return; }
     G.pending = { sel, list: a.list };
     redraw();
   }, [G, redraw, commit]);
 
-  const declare = useCallback((n: Family | null) => {
+  // הכרזה: ברמת הדרכה (require) מכריזים על הווריאנט; ברמה 4 (opt) על המשפחה.
+  const declare = useCallback((choice: string | Family | null) => {
     if (!G.pending) return;
     const { sel, list } = G.pending;
+    const top = list[0];
+    const byVariant = G.level.require !== undefined;
+    const correct = byVariant ? choice === top.variant : choice === top.n;
+
     let mult: number; let note: string;
-    if (n === null) { mult = 0.6; note = 'ללא הכרזה — 60% ניקוד.'; }
-    else if (n === list[0].n) { mult = 1.0; note = 'הכרזה נכונה.'; G.stat.declOk++; }
-    else { mult = 0.5; note = `ההרמוניה הגבוהה הייתה ${list[0].n} · ${FAMILY[list[0].n].name}. חצי ניקוד.`; }
-    if (n !== null) {
+    if (choice === null) { mult = 0.6; note = 'ללא הכרזה — 60% ניקוד.'; }
+    else if (correct) { mult = 1.0; note = 'הכרזה נכונה.'; G.stat.declOk++; }
+    else {
+      mult = 0.5;
+      note = byVariant
+        ? `זו ${FAMILY[top.n].name} · ${VARIANT[top.variant]}. חצי ניקוד.`
+        : `ההרמוניה הגבוהה הייתה ${top.n} · ${FAMILY[top.n].name}. חצי ניקוד.`;
+    }
+    if (choice !== null) {
       G.stat.declTotal++;
-      const f = list[0].n;
+      const f = top.n;
       G.stat.byFam[f] = G.stat.byFam[f] ?? { ok: 0, all: 0 };
       G.stat.byFam[f].all++;
-      if (n === f) G.stat.byFam[f].ok++;
+      if (correct) G.stat.byFam[f].ok++;
     }
     G.pending = null;
     commit(sel, list, mult, note);
@@ -188,7 +216,7 @@ export default function App() {
   }, [G, redraw, cpuTurn, finish]);
 
   const hint = useCallback(() => {
-    const best = bestMove(G, G.hand, 'תכנן');
+    const best = bestMove(G, G.hand, 'תכנן', G.level.require);
     if (!best) { setExplain({ none: true, near: null, list: [] }); return; }
     G.score.p -= 5;
     G.sel = new Set(best.sel);
@@ -212,14 +240,22 @@ export default function App() {
   const turn: 'p' | 'c' = G.busy ? 'c' : 'p';
   const showPalette = !!explain && !explain.none && !explain.preview && (explain.list?.length ?? 0) > 0;
   const showPreviewPalette = !!explain && explain.preview && (explain.list?.length ?? 0) > 0;
+  const bestDiff = bestPanel ? bestPanel.best.total - bestPanel.actualPts : 0;
+  const ghost = bestPanel && bestDiff > 0.5 ? bestPanel.best.list : null;
 
+  const req = G.level.require;
+  const reqFam = req !== undefined ? FAMILY[G.level.fams[0]].name : '';
   const guidance =
     G.over ? (solo ? 'סיום התרגול. אפשר לנסות שוב או לעבור רמה.' : 'המשחק הסתיים.')
     : G.busy ? 'המחשב חושב את מהלכו…'
-    : G.pending ? 'נקבי במשפחת ההרמוניה שיצרת כדי לקבל ניקוד מלא.'
-    : sel.length === 0 ? (solo
-        ? 'תרגול חופשי — בחרי אבנים ובני הרמוניה. אין יריב, אין לחץ.'
-        : 'בחרי אבנים מהמגש, ואז לחצי "סיום הבחירה".')
+    : G.pending ? 'נקבי באיזו תבנית מדובר כדי לקבל ניקוד מלא.'
+    : req !== undefined
+      ? (sel.length === 0
+          ? `בחרי בדיוק ${req} אבנים שיוצרות ${reqFam}, ואז "סיום הבחירה".`
+          : sel.length !== req
+            ? `בחרי בדיוק ${req} אבנים (יש לך ${sel.length}).`
+            : 'לחצי "סיום הבחירה" כדי לבדוק ולקבל ניקוד ומשוב.')
+    : sel.length === 0 ? 'בחרי אבנים מהמגש, ואז לחצי "סיום הבחירה".'
     : 'לחצי "סיום הבחירה" כדי לבדוק ולקבל ניקוד ומשוב.';
 
   return (
@@ -269,7 +305,8 @@ export default function App() {
         <div id="center">
           <TurnBar turn={turn} clock={clock} over={G.over} solo={solo} />
           <div id="stage">
-            <Wheel G={G} figure={figure} hover={hover} onToggle={toggle} onHover={setHover} />
+            <Wheel G={G} figure={figure} ghostFigure={ghost} hover={hover}
+              onToggle={toggle} onHover={setHover} />
           </div>
         </div>
 
@@ -282,6 +319,12 @@ export default function App() {
                 {showPreviewPalette ? 'לוח הצבעים שאת בונה' : 'לוח הצבעים שיצרת'}
               </h3>
               <Palette list={explain.list} />
+            </>
+          )}
+          {bestPanel && G.level.require !== undefined && (
+            <>
+              <h3 style={{ marginTop: 20 }}>הצירוף הטוב ביותר</h3>
+              <BestMove best={bestPanel.best} actualPts={bestPanel.actualPts} />
             </>
           )}
           <h3 style={{ marginTop: 20 }}>יומן</h3>
