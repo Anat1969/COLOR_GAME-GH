@@ -6,7 +6,7 @@ import {
 } from './engine/reducer';
 import { analyzeSelection } from './engine/teach';
 import { bestMove } from './engine/ai';
-import { FAMILY, VARIANT, LEVELS } from './data/content';
+import { FAMILY, VARIANT, LEVELS, levelLabel } from './data/content';
 import { Wheel } from './components/Wheel';
 import { HandTray } from './components/HandTray';
 import { DeclareBar } from './components/DeclareBar';
@@ -248,7 +248,7 @@ export default function App() {
   const guidance =
     G.over ? (solo ? 'סיום התרגול. אפשר לנסות שוב או לעבור רמה.' : 'המשחק הסתיים.')
     : G.busy ? 'המחשב חושב את מהלכו…'
-    : G.pending ? 'נקבי באיזו תבנית מדובר כדי לקבל ניקוד מלא.'
+    : G.pending ? 'נקבי באיזו הרמוניה מדובר כדי לקבל ניקוד מלא.'
     : req !== undefined
       ? (sel.length === 0
           ? `בחרי בדיוק ${req} אבנים שיוצרות ${reqFam}, ואז "סיום הבחירה".`
@@ -263,11 +263,10 @@ export default function App() {
       <header>
         <h1>הרמוניה</h1>
         <label className="lvl">
-          רמה{' '}
           <select value={G.levelIdx} onChange={(e) => start(+e.target.value)} aria-label="בחירת רמה">
             {LEVELS.map((L, i) => (
               <option key={L.n} value={i} disabled={i > unlocked}>
-                {L.n} · {L.name}{i > unlocked ? ' (נעולה)' : ''}
+                {levelLabel(L)}{i > unlocked ? ' (נעולה)' : ''}
               </option>
             ))}
           </select>
@@ -303,7 +302,7 @@ export default function App() {
         </aside>
 
         <div id="center">
-          <TurnBar turn={turn} clock={clock} over={G.over} solo={solo} />
+          <TurnBar turn={turn} clock={clock} over={G.over} solo={solo} moveNo={G.moveNo} />
           <div id="stage">
             <Wheel G={G} figure={figure} ghostFigure={ghost} hover={hover}
               onToggle={toggle} onHover={setHover} />

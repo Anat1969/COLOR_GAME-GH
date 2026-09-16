@@ -2,7 +2,7 @@
 // לא "ניצחת/הפסדת" אלא איפה העין חזקה ואיפה היא עוד לא רואה.
 // הניקוד הוא המנגנון; המיומנות היא התוצר (SPEC §10).
 import type { GameState } from '../engine/types';
-import { LEVELS, FAMILY } from '../data/content';
+import { LEVELS, FAMILY, levelLabel } from '../data/content';
 
 interface Props {
   G: GameState;
@@ -18,8 +18,11 @@ export function Diagnostic({ G, unlocked, clock, solo, onPick }: Props) {
   const s = G.stat;
   const pct = (a: number, b: number) => (b ? Math.round((100 * a) / b) : 0);
   const rows: [string, number, string][] = [
-    ['זיהוי יחס — דיוק הכרזה', pct(s.declOk, s.declTotal),
-      'האם נקבת נכון במשפחה שיצרת'],
+    // "דיוק הכרזה" מוצג רק אם הייתה הכרזה בכלל (רמות הדרכה מזהות אוטומטית)
+    ...(s.declTotal > 0
+      ? [['זיהוי יחס — דיוק הכרזה', pct(s.declOk, s.declTotal),
+          'האם נקבת נכון במשפחה שיצרת'] as [string, number, string]]
+      : []),
     ['ראיית קבוצה — אבנים לתור', Math.min(100, Math.round((100 * (s.stones / Math.max(1, s.turns))) / 4)),
       'האם ראית קבוצה לפני שהייתה קיימת'],
     ['שקילת זוגיות — תורות במכפיל', pct(s.asym, s.turns),
@@ -82,7 +85,7 @@ export function Diagnostic({ G, unlocked, clock, solo, onPick }: Props) {
             disabled={i > unlocked}
             onClick={() => onPick(i)}
           >
-            רמה {L.n} · {L.name}
+            {levelLabel(L)}
           </button>
         ))}
       </div>

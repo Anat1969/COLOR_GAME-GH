@@ -2,9 +2,9 @@
 // ה-UI קורא לאלה; אין כאן שום תלות ב-React.
 import type { CellId, GameState, Owner, Scored } from './types';
 import { CATALOG } from './catalog';
-import { cid, parse, SEGS, SEG_NAMES } from './wheel';
+import { cid, parse, hexOf, SEGS, SEG_NAMES } from './wheel';
 import { detect, tally } from './scoring';
-import { LEVELS, FAMILY } from '../data/content';
+import { LEVELS } from '../data/content';
 
 function shuffle<T>(a: T[]): T[] {
   for (let i = a.length - 1; i > 0; i--) {
@@ -33,7 +33,7 @@ export function newGame(levelIdx: number): GameState {
   return {
     level, levelIdx, cells, active,
     board: new Map(), pot, hand, cpu, ledger: new Set(), sel: new Set(),
-    score: { p: 0, c: 0 }, found: [], log: [], over: false, busy: false,
+    score: { p: 0, c: 0 }, found: [], log: [], moveNo: 0, over: false, busy: false,
     pending: null, passes: 0,
     stat: { declTotal: 0, declOk: 0, byFam: {}, turns: 0, stones: 0, asym: 0, diag: 0, harm: 0 },
   };
@@ -82,8 +82,17 @@ export function applyPlacement(
   }
   if (sel.length === G.level.hand) G.score[who] += 50;   // קומפוזיציה — כל היד בתור אחד
   checkBonuses(G, who);
+  // רשומת יומן עשירה: מספר מהלך, דוגמיות צבע של הצירוף, מספר קומפוזיציות, וניקוד.
+  G.moveNo++;
+  const chips = [...sel]
+    .sort((a, b) => { const pa = parse(a), pb = parse(b); return pa.s - pb.s || pa.r - pb.r; })
+    .map((c) => `<span class="chip" style="background:${hexOf(c)}"></span>`)
+    .join('');
+  const n = list.length;
+  const comps = n === 1 ? 'קומפוזיציה אחת' : `${n} קומפוזיציות`;
   G.log.push(
-    `<b>${who === 'p' ? 'את' : 'המחשב'}</b> — ${list.map((f) => FAMILY[f.n].name).join(', ')} · ${Math.round(pts)}`,
+    `<span class="mv-no">מהלך ${G.moveNo}</span><b>${who === 'p' ? 'את' : 'המחשב'}</b>` +
+    `<span class="mv-chips">${chips}</span><span class="mv-meta">${comps} · ${Math.round(pts)}</span>`,
   );
   G.passes = 0;
   while (target.length < G.level.hand && G.pot.length) target.push(G.pot.pop()!);

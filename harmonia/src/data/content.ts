@@ -83,11 +83,16 @@ export const FAMILY: Record<number, { name: string; mean: string }> = {
 };
 
 // רמות ההדרכה (1–3): משפחה יחידה, מהלך = בדיוק N אבנים היוצרות משפחה N.
-// fams:[N] מבטל אוטומטית את שאר המשפחות ב-newGame. רמות 4–5: התנהגות קיימת.
+// fams:[N] מבטל אוטומטית את שאר המשפחות ב-newGame. declare='auto' — זיהוי
+// אוטומטי, בלי הכרזה. רמות 4–5: התנהגות קיימת.
 export const LEVELS: Level[] = [
-  { n: 1, name: 'ציר', rings: [2, 3, 4], fams: [3], declare: 'must', ai: 'למד', hand: 7, solo: true, require: 3 },
-  { n: 2, name: 'מבנה', rings: [2, 3, 4], fams: [4], declare: 'must', ai: 'למד', hand: 7, require: 4 },
-  { n: 3, name: 'תנועה', rings: [1, 2, 3, 4, 5], fams: [5], declare: 'must', ai: 'תכנן', hand: 9, require: 5 },
+  { n: 1, name: 'ציר', rings: [2, 3, 4], fams: [3], declare: 'auto', ai: 'למד', hand: 7, solo: true, require: 3 },
+  { n: 2, name: 'מבנה', rings: [2, 3, 4], fams: [4], declare: 'auto', ai: 'למד', hand: 7, require: 4 },
+  { n: 3, name: 'תנועה', rings: [1, 2, 3, 4, 5], fams: [5], declare: 'auto', ai: 'תכנן', hand: 9, require: 5 },
   { n: 4, name: 'מקצב', rings: [1, 2, 3, 4, 5], fams: [2, 3, 4, 5, 6], declare: 'opt', ai: 'תכנן', hand: 9 },
   { n: 5, name: 'מחזור', rings: [1, 2, 3, 4, 5], fams: [2, 3, 4, 5, 6, 7], declare: 'auto', ai: 'הלחן', hand: 9 },
 ];
+
+/** תווית הרמה: רמות הדרכה מזוהות במספר הצבעים בקומפוזיציה (3 · ציר), השאר במספר הרמה */
+export const levelLabel = (L: Level): string =>
+  L.require !== undefined ? `${L.require} צבעים · ${L.name}` : `רמה ${L.n} · ${L.name}`;

@@ -62,6 +62,7 @@ export interface GameState {
   score: { p: number; c: number };
   found: Scored[];
   log: string[];
+  moveNo: number;                     // מונה מהלכים (הנחות של שני הצדדים)
   over: boolean;
   busy: boolean;
   pending: { sel: CellId[]; list: Scored[] } | null;

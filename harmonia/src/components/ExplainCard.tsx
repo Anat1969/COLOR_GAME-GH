@@ -86,7 +86,12 @@ export function ExplainCard({ x }: { x: Explain | null }) {
 
       {/* פירוק: הצירוף השלם שהונח, ומה תרם כל רכיב בתוכו */}
       {x.placed && x.placed.length > 0 && (
-        <p className="combo-head">הצירוף שהנחת: {stoneNames(x.placed)}</p>
+        <p className="combo-head">
+          הצירוף שהנחת: {stoneNames(x.placed)}
+          {x.list.length > 0 && (
+            <> · {x.list.length === 1 ? 'קומפוזיציה אחת' : `${x.list.length} קומפוזיציות`}</>
+          )}
+        </p>
       )}
 
       {x.list.map((f, i) => (
