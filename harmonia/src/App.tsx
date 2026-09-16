@@ -260,61 +260,75 @@ export default function App() {
 
   return (
     <>
-      <header>
-        <h1>הרמוניה</h1>
-        <label className="lvl">
-          <select value={G.levelIdx} onChange={(e) => start(+e.target.value)} aria-label="בחירת רמה">
-            {LEVELS.map((L, i) => (
-              <option key={L.n} value={i} disabled={i > unlocked}>
-                {levelLabel(L)}{i > unlocked ? ' (נעולה)' : ''}
-              </option>
-            ))}
-          </select>
-        </label>
-        <span className="spacer" />
-        <div className="score" aria-live="polite">
-          <div className={`item${solo || G.score.p >= G.score.c ? ' lead' : ''}`}>
-            <span className="v num">{Math.round(G.score.p)}</span><span className="l">את</span>
+      <div id="app">
+        {/* הלוח — תופס את מרב המסך */}
+        <div id="board">
+          <Wheel G={G} figure={figure} ghostFigure={ghost} hover={hover}
+            onToggle={toggle} onHover={setHover} />
+        </div>
+
+        {/* עמודת הצד — כל המידע, הכותרות והפקדים */}
+        <aside id="side">
+          <div className="side-head">
+            <h1>הרמוניה</h1>
+            <select className="lvlsel" value={G.levelIdx}
+              onChange={(e) => start(+e.target.value)} aria-label="בחירת רמה">
+              {LEVELS.map((L, i) => (
+                <option key={L.n} value={i} disabled={i > unlocked}>
+                  {levelLabel(L)}{i > unlocked ? ' (נעולה)' : ''}
+                </option>
+              ))}
+            </select>
           </div>
-          {solo ? (
+
+          <div className="score" aria-live="polite">
+            <div className={`item${solo || G.score.p >= G.score.c ? ' lead' : ''}`}>
+              <span className="v num">{Math.round(G.score.p)}</span><span className="l">את</span>
+            </div>
+            {solo ? (
+              <div className="item">
+                <span className="v num">{G.found.length}</span><span className="l">הרמוניות</span>
+              </div>
+            ) : (
+              <div className={`item${G.score.c > G.score.p ? ' lead' : ''}`}>
+                <span className="v num">{Math.round(G.score.c)}</span><span className="l">המחשב</span>
+              </div>
+            )}
             <div className="item">
-              <span className="v num">{G.found.length}</span><span className="l">הרמוניות</span>
+              <span className="v num">{G.pot.length}</span><span className="l">בקופה</span>
             </div>
-          ) : (
-            <div className={`item${G.score.c > G.score.p ? ' lead' : ''}`}>
-              <span className="v num">{Math.round(G.score.c)}</span><span className="l">המחשב</span>
-            </div>
-          )}
-          <div className="item">
-            <span className="v num">{G.pot.length}</span><span className="l">בקופה</span>
           </div>
-        </div>
-      </header>
 
-      <main>
-        <aside>
-          <h3>אופי הצירופים</h3>
-          <RelationTypes />
-          <h3 style={{ marginTop: 20 }}>המשפחות ברמה זו</h3>
-          <FamiliesLegend fams={G.level.fams} />
-          <h3 style={{ marginTop: 20 }}>ספר ההרמוניות</h3>
-          <Ledger G={G} />
-        </aside>
-
-        <div id="center">
           <TurnBar turn={turn} clock={clock} over={G.over} solo={solo} moveNo={G.moveNo} />
-          <div id="stage">
-            <Wheel G={G} figure={figure} ghostFigure={ghost} hover={hover}
-              onToggle={toggle} onHover={setHover} />
-          </div>
-        </div>
 
-        <aside>
+          {/* פקדים — מגש וכפתורים */}
+          <div className="controls">
+            <HandTray G={G} hover={hover} onToggle={toggle} onHover={setHover} />
+            {G.pending ? (
+              <DeclareBar G={G} onDeclare={declare} />
+            ) : (
+              <div className="bar">
+                <button className="primary" disabled={busy || sel.length < 1} onClick={submit}>
+                  סיום הבחירה ובדיקה
+                </button>
+                <button
+                  disabled={busy || sel.length === 0 || sel.length > 3 || !G.pot.length}
+                  onClick={swap}
+                >החלפה</button>
+                {!solo && <button disabled={busy} onClick={pass}>ויתור</button>}
+                <button disabled={busy} onClick={hint}>מצפן · 5−</button>
+                <button onClick={() => start(G.levelIdx)}>{solo ? 'לוח חדש' : 'משחק חדש'}</button>
+              </div>
+            )}
+            <p className="hintline" aria-live="polite">{guidance}</p>
+          </div>
+
+          {/* משוב ופירוק המהלך */}
           <h3>{explain?.none ? 'משוב' : explain?.committed ? 'המהלך האחרון' : 'הדרכה'}</h3>
           <ExplainCard x={explain} />
           {(showPalette || showPreviewPalette) && explain?.list && (
             <>
-              <h3 style={{ marginTop: 20 }}>
+              <h3 className="sep">
                 {showPreviewPalette ? 'לוח הצבעים שאת בונה' : 'לוח הצבעים שיצרת'}
               </h3>
               <Palette list={explain.list} />
@@ -322,39 +336,28 @@ export default function App() {
           )}
           {bestPanel && G.level.require !== undefined && (
             <>
-              <h3 style={{ marginTop: 20 }}>הצירוף הטוב ביותר</h3>
+              <h3 className="sep">הצירוף הטוב ביותר</h3>
               <BestMove best={bestPanel.best} actualPts={bestPanel.actualPts} />
             </>
           )}
-          <h3 style={{ marginTop: 20 }}>יומן</h3>
+
+          {/* מקרא */}
+          <h3 className="sep">אופי הצירופים</h3>
+          <RelationTypes />
+          <h3 className="sep">המשפחות ברמה זו</h3>
+          <FamiliesLegend fams={G.level.fams} />
+
+          {/* היסטוריה */}
+          <h3 className="sep">ספר ההרמוניות</h3>
+          <Ledger G={G} />
+          <h3 className="sep">יומן</h3>
           {G.log.length
             ? G.log.slice(-8).reverse().map((l, i) => (
                 <div className="log" key={G.log.length - i} dangerouslySetInnerHTML={{ __html: l }} />
               ))
             : <p className="empty">המשחק מתחיל.</p>}
         </aside>
-      </main>
-
-      <footer>
-        <HandTray G={G} hover={hover} onToggle={toggle} onHover={setHover} />
-        {G.pending ? (
-          <DeclareBar G={G} onDeclare={declare} />
-        ) : (
-          <div className="bar">
-            <button className="primary" disabled={busy || sel.length < 1} onClick={submit}>
-              סיום הבחירה ובדיקה
-            </button>
-            <button
-              disabled={busy || sel.length === 0 || sel.length > 3 || !G.pot.length}
-              onClick={swap}
-            >החלפה</button>
-            {!solo && <button disabled={busy} onClick={pass}>ויתור</button>}
-            <button disabled={busy} onClick={hint}>מצפן · 5−</button>
-            <button onClick={() => start(G.levelIdx)}>{solo ? 'לוח חדש' : 'משחק חדש'}</button>
-          </div>
-        )}
-        <p className="hintline" aria-live="polite">{guidance}</p>
-      </footer>
+      </div>
 
       {G.over && (
         <div id="over">
